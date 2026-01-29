@@ -6,7 +6,7 @@ suppressMessages(library("optparse"))
 #=================Parse command line arguments=================
 option_list = list(
   make_option(c("-i", "--input"), type="character", default="Data/P005_BSHRI_NULISAseq_CNSDiseasePanel_NPQCounts_2025_03_10.xlsx", help="Input NPQ counts file"),
-  make_option(c("-o", "--output"), type="character", default="00_Initialization", help="Output initialization path"),
+  make_option(c("-o", "--output"), type="character", default="Results/00_Initialization", help="Output initialization path"),
   make_option(c("-m","--metadata"), type="character", default="Data/NULISA_MAXOMOD_TearALS_final.xlsx", help="Input metadata file"),
   make_option(c("-c","--cluster"), type="character", default="Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv", help="Clustering allocation file from MAXOMOD project Discovery and Validation cohorts")
 )
