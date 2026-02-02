@@ -19,6 +19,10 @@ if (is.null(opt$input)) {
 } else {
   input_file <- opt$input
   npq_counts <- read_excel(input_file,sheet = "NPQ Counts")
+  # Aβ38, Aβ40, Aβ42 display error
+  npq_counts$Target[npq_counts$Target == "AÎ²38"] = "Aβ38"
+  npq_counts$Target[npq_counts$Target == "AÎ²40"] = "Aβ40"
+  npq_counts$Target[npq_counts$Target == "AÎ²42"] = "Aβ42"
 }
 
 if (is.null(opt$output)) {
@@ -53,6 +57,7 @@ if (is.null(opt$cluster)) {
 # target detectability
 target_detectability <- read_excel(input_file, 
            sheet = "Target Detectability") %>% rename(Target_Detectability = "Target Detectability",Target_LOD = "Target LOD (NPQ)")
+writexl::write_xlsx(target_detectability, paste0(output_dir, "/target_detectability.xlsx"))
 
 # information on sample IDs
 sample_ID_info <- read_excel(input_file, 
@@ -76,7 +81,7 @@ all_participants_IDs = do.call("rbind",
                                     Tears))
 
 # remove interial control from npq_counts
-npq_counts = npq_counts %>% filter(SampleMatrixType != "CONTROL")
+#npq_counts = npq_counts %>% filter(SampleMatrixType != "CONTROL")
 
 #Assign Tear fluid SampleName back into Tube_ID in Tears
 Tears = Tears %>% left_join(sample_ID_info , by = c("Patient" = "Mapping_ID")) %>%
@@ -126,6 +131,11 @@ cluster_info$genetics = ifelse(cluster_info$genetics == "Genom neg." | cluster_i
 # convert to character
 cluster_info$ID = as.character(cluster_info$ID)
 all_participants_IDs <- all_participants_IDs %>% left_join(cluster_info, by = c("ID" = "ID"))
+all_participants_IDs$Tube_ID = as.character(all_participants_IDs$Tube_ID)
+
+# add type to all_participants_IDs (to each row, assign a unique number, group by disease)
+#all_participants_IDs$type = ave(all_participants_IDs$Tube_ID, all_participants_IDs$disease, FUN = seq_along)
+all_participants_IDs$type = toupper(all_participants_IDs$disease)
 
 writexl::write_xlsx(all_participants_IDs, paste0(output_dir, "/all_participants_IDs.xlsx"))
 
