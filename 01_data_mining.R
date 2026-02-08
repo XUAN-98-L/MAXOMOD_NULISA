@@ -257,8 +257,32 @@ for (fluid in fluids) {
 #################################################################
 #  Check targets' detectability across samples
 #################################################################
-df_reads_norm <- protein_data  %>%
-  filter(SampleType == "NC") %>%
-  mutate(
-    reads = 2^NPQ - 1
+protein_data_with_lod <- protein_data %>%
+  left_join(target_detectability %>%
+              dplyr::select(Target,Target_LOD) %>% 
+              distinct()) %>%
+  mutate(below_lod = NPQ < Target_LOD)
+
+detectability_summary <- protein_data_with_lod %>%
+  group_by(SampleMatrixType, Target) %>%
+  summarise(
+    n_samples = n(),
+    n_below_lod = sum(below_lod, na.rm = TRUE),
+    frac_below_lod = n_below_lod / n_samples,
+    .groups = "drop"
+  ) %>%
+  filter(SampleMatrixType != "CONTROL") %>%
+  arrange(Target,frac_below_lod) %>%
+  mutate(percent_below_lod = frac_below_lod * 100,
+         detectability = ifelse(frac_below_lod>0.5,"low","high"))
+
+writexl::write_xlsx(detectability_summary,paste0(output_dir, "/detectability_summary.xlsx"))
+
+targets_below_LOD = detectability_summary %>%
+  select(SampleMatrixType, Target, percent_below_lod) %>%
+  tidyr::pivot_wider(
+    names_from = SampleMatrixType,
+    values_from = percent_below_lod
   )
+
+writexl::write_xlsx(targets_below_LOD,paste0(output_dir, "/targets_below_LOD.xlsx"))
