@@ -114,6 +114,17 @@ plot_detectability <- function(df, fluid, by_plate = FALSE) {
   
   p
 }
+
+# set colors
+my_palette = c("#66C2A5","#E78AC3", "#ffc773",
+                "#1B9E77","#7570B3","#FEE090",
+                "#A6D854","#8DA0CB","#FC8D62",
+                "#8FBC94","#b0a4e3","#ffa631",
+                "#0aa344","#e4c6d0","#ffa400",
+                "#519a73","#4b5cc4","#eedeb0",
+                "#549688","#ffb3a7","#b35c44",
+                "#7fecad","#a1afc9","#a78e44",
+                "#519a73","#2e4e7e","#955539")
 #=================Parse command line arguments=================
 option_list = list(
   make_option(c("-i", "--input"), type="character", default="Results/00_Initialization/npq_counts.xlsx", help="Input NPQ counts file"),
@@ -236,6 +247,8 @@ td <- protein_data  %>%
                   abs(TargetDetectability_value),
                   TargetDetectability_value))
 
+writexl::write_xlsx(td,paste0(output_dir, "/td.xlsx"))
+
 fluids <- c("CSF", "PLASMA", "SERUM", "TEARS")
 
 # Save plots
@@ -255,13 +268,96 @@ for (fluid in fluids) {
 }
 
 #################################################################
+# NPQ Distributions by Plate original data
+#################################################################
+protein_long_alltogether <- protein_data %>%
+  mutate(
+    SampleMatrixType = factor(
+      SampleMatrixType,
+      levels = c("PLASMA", "SERUM", "CSF", "TEARS", "CONTROL")
+    )
+  ) %>%
+  dplyr::select(
+    Target, SampleMatrixType, PlateID, NPQ
+  ) %>%
+  rename(value = NPQ)
+
+unique_targets <- unique(protein_data$Target)
+
+for (target in unique_targets) {
+  
+  df_t_alltogether <- protein_long_alltogether %>%
+    filter(Target == target)
+  
+  p_alltogether <- ggboxplot(
+    df_t_alltogether,
+    x = "SampleMatrixType",
+    y = "value",
+    color = "PlateID",
+    add = "jitter"
+  ) +
+    scale_color_manual(values = my_palette) +
+    labs(
+      title = target,
+      y = "NPQ"
+    ) +
+    theme_bw()
+  
+  if (!file.exists(paste0(output_dir, "/NPQ_fluid_plate"))) {
+    dir.create(paste0(output_dir, "/NPQ_fluid_plate"), recursive = TRUE)
+  }
+  pdf(paste0(output_dir, "/NPQ_fluid_plate/NPQ_", target, ".pdf"),
+      width = 10, height = 5)
+  print(p_alltogether)
+  dev.off()
+}
+
+#################################################################
+# Project-LOD of original data
+#################################################################
+# Project-LOD non-normalized data
+df_reads <- protein_data %>%
+  filter(SampleType == "NC") %>%
+  mutate(
+    reads = 2^NPQ - 1
+  )
+
+lod_linear <- df_reads %>%
+  group_by(Target) %>%
+  summarise(
+    mean_reads = mean(reads, na.rm = TRUE),
+    sd_reads   = sd(reads, na.rm = TRUE),
+    lod_reads  = mean_reads + 3 * sd_reads,
+    .groups = "drop"
+  )
+
+lod_project <- lod_linear %>%
+  mutate(
+    LOD_NPQ = log2(lod_reads + 1)
+  ) %>%
+  select(Target, LOD_NPQ)
+
+## Attached to original target detectability
+target_detectability_extra = target_detectability %>%
+  #dplyr::rename(Target = TargetName) %>%
+  #left_join(lod_project_norm) %>%
+  left_join(lod_project) %>%
+  dplyr::rename(original_TargetLOD = Target_LOD,
+                #ProjectLOD_norm = LOD_NPQ_norm,
+                ProjectLOD = LOD_NPQ) %>%
+  arrange(Target)
+
+writexl::write_xlsx(target_detectability_extra,paste0(output_dir, "/target_detectability_extra.xlsx"))
+#################################################################
 #  Check targets' detectability across samples
 #################################################################
 protein_data_with_lod <- protein_data %>%
-  left_join(target_detectability %>%
-              dplyr::select(Target,Target_LOD) %>% 
+  left_join(target_detectability_extra %>%
+              dplyr::select(Target,ProjectLOD) %>% 
               distinct()) %>%
-  mutate(below_lod = NPQ < Target_LOD)
+  mutate(below_lod = ifelse(Target %in% c("APOE","CRP"),
+                NPQ > ProjectLOD,
+               NPQ < ProjectLOD))
 
 detectability_summary <- protein_data_with_lod %>%
   group_by(SampleMatrixType, Target) %>%
