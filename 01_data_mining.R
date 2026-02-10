@@ -175,6 +175,8 @@ protein_data_IDs <- protein_data %>%
   select(SampleName, SampleMatrixType, Target, UniProtID, ProteinName, NPQ) %>%
   left_join(samples_ID_type %>% rename(SampleName = `Tube_ID`), by = "SampleName")
 
+writexl::write_xlsx(protein_data_IDs,paste0(output_dir, "/protein_data_IDs.xlsx"))
+
 # target_detectability
 
 # get count table of APOE
