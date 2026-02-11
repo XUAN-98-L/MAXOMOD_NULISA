@@ -152,6 +152,10 @@ npq_counts$SampleMatrixType = ifelse(npq_counts$SampleMatrixType == "OTHER", "TE
 if (cohort == "VC") {
   all_participants_IDs <- all_participants_IDs %>% filter(cohort == "VC")
   npq_counts <- npq_counts %>% filter(SampleName %in% all_participants_IDs$Tube_ID | SampleMatrixType == "CONTROL")
+  df = read.csv("/Users/xliu2942/Documents/Projects/MAXOMOD/MAXOMOD_CSF/Validation/03_Differential_expression_analysis_subclusters/Differential_expression_analysis_for_k2.csv")
+  # only keep the targets that are DEGs in the VC cohort
+  df = df[which(df$fdr < 0.05),]
+  npq_counts = npq_counts[which(npq_counts$Target %in% df$name),]
 } else if (cohort == "DC") {
   all_participants_IDs <- all_participants_IDs %>% filter(cohort == "DC")
   npq_counts <- npq_counts %>% filter(SampleName %in% all_participants_IDs$Tube_ID | SampleType == "CONTROL")

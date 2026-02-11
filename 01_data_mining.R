@@ -179,6 +179,7 @@ writexl::write_xlsx(protein_data_IDs,paste0(output_dir, "/protein_data_IDs.xlsx"
 
 # target_detectability
 
+if ("APOE4" %in% protein_data_IDs$Target) {
 # get count table of APOE
 table_APOE = protein_data_IDs %>%
     rename(subtype = genetics)  %>%
@@ -198,8 +199,8 @@ carrier_table <- table_APOE %>%
   mutate(
     Total = Carrier + `Non-carrier`
   )
-
-writexl::write_xlsx(carrier_table,paste0(output_dir, "/APOE4_carriers.xlsx"))
+  writexl::write_xlsx(carrier_table,paste0(output_dir, "/APOE4_carriers.xlsx"))
+}
 
 ###############################################
 # Sample Counts Across Fluids
