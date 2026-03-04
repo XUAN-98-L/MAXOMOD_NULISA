@@ -92,32 +92,34 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Results/Immune_panel/With
 # rm -rf CNS_immune/Results/Immune_panel/Without_tears/03_PCA_v*
 Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype FALSE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx
 
-opt$input = "CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx"
-opt$output = "CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis"
-opt$metadata = "CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx"
-opt$subtype = FALSE
-opt$seed = 123
-opt$label = FALSE
-opt$fluids = "CSF,SERUM,PLASMA"
-opt$adjust = FALSE
-opt$npq_counts = "CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx"
-opt$group_by = "type"
+# PCA part does not work now due to the target “IFNA2” does not appear in Appendix 2: NULISAseq™ Inflammation Panel 250. However, it is present in the file “P005_BSHRI_NULISAseq_InflammationPanel_NPQ_03022026.xlsx” for plasma, but not for serum or CSF.
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx
+# opt$input = "CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx"
+# opt$output = "CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis"
+# opt$metadata = "CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx"
+# opt$subtype = FALSE
+# opt$seed = 123
+# opt$label = FALSE
+# opt$fluids = "CSF,SERUM,PLASMA"
+# opt$adjust = FALSE
+# opt$npq_counts = "CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx"
+# opt$group_by = "type"
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "sex"
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "cohort"
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "sex"
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "plateid"
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "cohort"
 
-# adjust for age and sex
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype FALSE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "type"
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "plateid"
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "subtype"
+# # adjust for age and sex
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype FALSE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "type"
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "cohort"
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "subtype"
 
-Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "plateid"
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "cohort"
+
+# Rscript Script/03_PCA_vis.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/03_PCA_vis_adjusted_subtypes --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype TRUE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust TRUE --npq_counts CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --group_by "plateid"
 
 
