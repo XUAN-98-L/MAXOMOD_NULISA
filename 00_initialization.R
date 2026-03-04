@@ -9,7 +9,8 @@ option_list = list(
   make_option(c("-o", "--output"), type="character", default="Results/00_Initialization", help="Output initialization path"),
   make_option(c("-m","--metadata"), type="character", default="Data/NULISA_MAXOMOD_TearALS_final.xlsx", help="Input metadata file"),
   make_option(c("-c","--cluster"), type="character", default="Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv", help="Clustering allocation file from MAXOMOD project Discovery and Validation cohorts"),
-  make_option(c("--cohort"), type="character", default="both", help="Choose cohort: VC or DC or both")
+  make_option(c("--cohort"), type="character", default="both", help="Choose cohort: VC or DC or both"),
+  make_option(c("--tears"), type= "logical", default=TRUE, help="Include tears: TRUE or FALSE")
 )
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
@@ -60,16 +61,31 @@ if (is.null(opt$cohort)) {
 } else {
   cohort <- opt$cohort
 }
+
+if (is.null(opt$tears)) {
+  print("NO TEARS OPTION SUPPLIED, EXITING!")
+  stop("Please provide the tears option!")
+} else {
+  tears <- opt$tears
+}
 #=================Data Processing=================
 # target detectability
 target_detectability <- read_excel(input_file, 
            sheet = "Target Detectability") %>% rename(Target_Detectability = "Target Detectability",Target_LOD = "Target LOD (NPQ)")
 
 
-# information on sample IDs
-sample_ID_info <- read_excel(input_file, 
-          sheet = "Sample Information") %>%
-  dplyr::select("Sample Name","PlateID","Well Position","Patient ID (from manifest - for Plate 01)") %>% rename(SampleName = "Sample Name",PlateID = "PlateID",WellPosition = "Well Position", Mapping_ID = "Patient ID (from manifest - for Plate 01)")
+# information on sample IDs (include "Patient ID (from manifest - for Plate 01)" as Mapping_ID if present)
+sample_ID_info <- read_excel(input_file, sheet = "Sample Information")
+patient_id_col <- "Patient ID (from manifest - for Plate 01)"
+if (patient_id_col %in% names(sample_ID_info)) {
+  sample_ID_info <- sample_ID_info %>%
+    dplyr::select("Sample Name", "PlateID", "Well Position", all_of(patient_id_col)) %>%
+    rename(SampleName = "Sample Name", PlateID = "PlateID", WellPosition = "Well Position", Mapping_ID = all_of(patient_id_col))
+} else {
+  sample_ID_info <- sample_ID_info %>%
+    dplyr::select("Sample Name", "PlateID", "Well Position") %>%
+    rename(SampleName = "Sample Name", PlateID = "PlateID", WellPosition = "Well Position")
+}
 
 # IDS of patients from different fluids
 CSF <- read_excel(metadata_file, 
@@ -78,6 +94,8 @@ Serum <- read_excel(metadata_file,
           sheet = "Serum") %>% dplyr::select("Patient","ID","Tube-ID","Material","Rack position Nick","Rack number") %>% rename(Tube_ID = "Tube-ID",Rack_Position_Nick = "Rack position Nick",Rack_number = "Rack number")
 Plasma <- read_excel(metadata_file, 
           sheet = "Plasma") %>% dplyr::select("Patient","ID","Tube-ID","Material","Rack position Nick","Rack number") %>% rename(Tube_ID = "Tube-ID",Rack_Position_Nick = "Rack position Nick",Rack_number = "Rack number")
+
+if (tears) {
 Tears <- read_excel(metadata_file, 
           sheet = "Tears") %>% dplyr::select("Patient","ID","Tube-ID","Material","Rack position Nick","Rack number") %>% rename(Tube_ID = "Tube-ID",Rack_Position_Nick = "Rack position Nick",Rack_number = "Rack number")
 
@@ -86,12 +104,20 @@ all_participants_IDs = do.call("rbind",
                                     Serum,
                                     Plasma,
                                     Tears))
+} else {
+  all_participants_IDs = do.call("rbind",
+                                 list(CSF,
+                                      Serum,
+                                      Plasma))
+}
 
 # remove interial control from npq_counts
 #npq_counts = npq_counts %>% filter(SampleMatrixType != "CONTROL")
 
-#Assign Tear fluid SampleName back into Tube_ID in Tears
-Tears = Tears %>% left_join(sample_ID_info , by = c("Patient" = "Mapping_ID")) %>%
+# Assign Tear fluid SampleName back into Tube_ID in Tears (only when Mapping_ID exists in sample_ID_info)
+if ("Mapping_ID" %in% names(sample_ID_info)) {
+  if (tears) {
+  Tears <- Tears %>% left_join(sample_ID_info, by = c("Patient" = "Mapping_ID")) %>%
     dplyr::filter(!is.na(SampleName))
 
 # Replace npq_counts$SampleName with Tears_sample$Tube_ID where SampleName matches
@@ -106,7 +132,9 @@ npq_counts <- npq_counts %>%
     left_join(Tears_sample, by = c("SampleName" = "SampleName", "PlateID" = "PlateID")) %>%
     mutate(SampleName = ifelse(!is.na(Tube_ID), Tube_ID, SampleName)) %>%
     dplyr::select(-Tube_ID)
+  }
 
+}
 # leave only the participants IDs that are in the npq_counts
 all_participants_IDs <- all_participants_IDs %>% dplyr::filter(Tube_ID %in% npq_counts$SampleName)
 
@@ -147,6 +175,12 @@ all_participants_IDs$type = toupper(all_participants_IDs$disease)
 
 # change SampleMatrixType OTHER into TEARS
 npq_counts$SampleMatrixType = ifelse(npq_counts$SampleMatrixType == "OTHER", "TEARS", npq_counts$SampleMatrixType)
+
+if (tears) {
+  npq_counts <- npq_counts 
+} else {
+  npq_counts <- npq_counts %>% filter(SampleMatrixType != "TEARS")
+}
 
 # filter based on cohort
 if (cohort == "VC") {

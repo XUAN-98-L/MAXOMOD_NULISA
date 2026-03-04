@@ -167,6 +167,15 @@ if (is.null(opt$target_detectability)) {
 } else {
   target_detectability_file <- opt$target_detectability
   target_detectability <- read_excel(target_detectability_file)
+
+  # NPQ, TargetDetectability and TargetLOD_NPQ should be numeric
+ target_detectability[which(target_detectability$Target_Detectability == "NA"),]$Target_Detectability <- NA
+ target_detectability[which(target_detectability$Target_LOD == "NA"),]$Target_LOD <- NA
+
+  target_detectability <- target_detectability %>%
+    mutate(Target_Detectability = as.numeric(Target_Detectability),
+           Target_LOD = as.numeric(Target_LOD)) %>%
+    filter(!is.na(Target_Detectability), !is.na(Target_LOD))
 }
 #=================Data Processing=================
 # Merge protein data with sample type
@@ -205,8 +214,11 @@ carrier_table <- table_APOE %>%
 ###############################################
 # Sample Counts Across Fluids
 ###############################################
-
+if ("TEARS" %in% unique(protein_data_IDs$SampleMatrixType)) {
 fluids <- c("SERUM", "PLASMA", "CSF", "TEARS")
+} else {
+  fluids <- c("SERUM", "PLASMA", "CSF")
+}
 
 sample_counts <- bind_rows(
   lapply(fluids, function(f) count_samples_per_fluid(protein_data_IDs, f))
@@ -220,16 +232,24 @@ writexl::write_xlsx(sample_counts,paste0(output_dir, "/samples_biofluid_overview
 df_SERUM  <- get_mean_per_fluid(protein_data_IDs, "SERUM")
 df_PLASMA <- get_mean_per_fluid(protein_data_IDs, "PLASMA")
 df_CSF    <- get_mean_per_fluid(protein_data_IDs, "CSF")
-df_TEARS  <- get_mean_per_fluid(protein_data_IDs, "TEARS")
+if ("TEARS" %in% unique(protein_data_IDs$SampleMatrixType)) {
+  df_TEARS  <- get_mean_per_fluid(protein_data_IDs, "TEARS")
+}
 
 p1 = make_corr(df_PLASMA, df_SERUM,  "PLASMA", "SERUM", paste0(output_dir, "/correlation_plasma_serum.pdf"))
 p2 = make_corr(df_SERUM,  df_CSF,    "SERUM",  "CSF",   paste0(output_dir, "/correlation_serum_CSF.pdf"))
 p3 = make_corr(df_PLASMA, df_CSF,    "PLASMA", "CSF",   paste0(output_dir, "/correlation_plasma_CSF.pdf"))
+if ("TEARS" %in% unique(protein_data_IDs$SampleMatrixType)) {
 p4 = make_corr(df_TEARS,  df_SERUM,    "TEARS",  "SERUM",   paste0(output_dir, "/correlation_tears_serum.pdf"))
 p5 = make_corr(df_TEARS,  df_PLASMA,    "TEARS",  "PLASMA",   paste0(output_dir, "/correlation_tears_plasma.pdf"))
 p6 = make_corr(df_TEARS,  df_CSF,    "TEARS",  "CSF",   paste0(output_dir, "/correlation_tears_csf.pdf"))
+}
 
-combined <- cowplot::plot_grid(p1, p2, p3, p4, p5, p6, nrow = 2, align = "h") 
+if ("TEARS" %in% unique(protein_data_IDs$SampleMatrixType)) {
+  combined <- cowplot::plot_grid(p1, p2, p3, p4, p5, p6, nrow = 2, align = "h") 
+} else {
+  combined <- cowplot::plot_grid(p1, p2, p3, nrow = 2, align = "h") 
+}
 height = length(combined)/2 * 2
 width = length(combined)/2 * 3
 pdf(paste0(output_dir, "/correlation_combined.pdf"), width = width, height = height) 
@@ -246,13 +266,17 @@ td <- protein_data  %>%
          TargetDetectability =
            as.numeric(TargetDetectability) * 100) %>%
   mutate(TargetDetectability_value =
-           ifelse(Target %in% c("APOE", "CRP"),
+           ifelse(Target %in% c("APOE", "CRP", "KNG1"),
                   abs(TargetDetectability_value),
                   TargetDetectability_value))
 
 writexl::write_xlsx(td,paste0(output_dir, "/td.xlsx"))
 
+if ("TEARS" %in% unique(protein_data_IDs$SampleMatrixType)) {
 fluids <- c("CSF", "PLASMA", "SERUM", "TEARS")
+} else {
+  fluids <- c("CSF", "PLASMA", "SERUM")
+}
 
 # Save plots
 for (fluid in fluids) {
@@ -277,7 +301,7 @@ protein_long_alltogether <- protein_data %>%
   mutate(
     SampleMatrixType = factor(
       SampleMatrixType,
-      levels = c("PLASMA", "SERUM", "CSF", "TEARS", "CONTROL")
+      levels = c("PLASMA", "SERUM", "CSF", if ("TEARS" %in% unique(protein_data$SampleMatrixType)) "TEARS" else NULL, "CONTROL")
     )
   ) %>%
   dplyr::select(
@@ -358,7 +382,7 @@ protein_data_with_lod <- protein_data %>%
   left_join(target_detectability_extra %>%
               dplyr::select(Target,ProjectLOD) %>% 
               distinct()) %>%
-  mutate(below_lod = ifelse(Target %in% c("APOE","CRP"),
+  mutate(below_lod = ifelse(Target %in% c("APOE","CRP","KNG1"),
                 NPQ > ProjectLOD,
                NPQ < ProjectLOD))
 

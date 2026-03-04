@@ -18,8 +18,11 @@ run_full_pipeline <- function(protein_data, sample_map, td, prefix = "ALL",
   
   message("Preparing dataset...")
   df <- prepare_dataset(protein_data, sample_map)
-  
+  if ("TEARS" %in% unique(protein_data$SampleMatrixType)) {
   fluids <- c("CSF", "SERUM", "PLASMA","TEARS")
+  } else {
+    fluids <- c("CSF", "SERUM", "PLASMA")
+  }
   results <- list()
   
   for (fluid in fluids) {
