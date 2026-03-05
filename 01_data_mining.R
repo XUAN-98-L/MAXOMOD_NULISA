@@ -18,16 +18,20 @@ count_samples_per_fluid <- function(df, fluid) {
 }
 
 make_corr <- function(df1, df2, label1, label2, filename) {
-  merged <- inner_join(df1, df2, by = c("Target", "UniProtID"))
-  p <- corr_plot(merged,
-                 paste0("NPQ_", label1),
-                 paste0("NPQ_", label2),
-                 paste("Correlation", label1, "vs", label2))
-  
-  pdf(filename)
-  print(p)
-  dev.off()
-  p
+  tryCatch({
+    merged <- inner_join(df1, df2, by = c("Target", "UniProtID"))
+    p <- corr_plot(merged,
+                   paste0("NPQ_", label1),
+                   paste0("NPQ_", label2),
+                   paste("Correlation", label1, "vs", label2))
+    pdf(filename)
+    print(p)
+    dev.off()
+    p
+  }, error = function(e) {
+    warning("Correlation skipped (", label1, " vs ", label2, "): ", conditionMessage(e))
+    NULL
+  })
 }
 
 get_mean_per_fluid <- function(df, fluid) {

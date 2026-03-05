@@ -6,11 +6,13 @@ suppressMessages(library("optparse"))
 #=================Parse command line arguments=================
 option_list = list(
   make_option(c("-i", "--input"), type="character", default="Data/P005_BSHRI_NULISAseq_CNSDiseasePanel_NPQCounts_2025_03_10.xlsx", help="Input NPQ counts file"),
-  make_option(c("-o", "--output"), type="character", default="Results/00_Initialization", help="Output initialization path"),
+  make_option(c("-o", "--output"), type="character", default="Results/00_Initialization_customised_targets", help="Output initialization path"),
   make_option(c("-m","--metadata"), type="character", default="Data/NULISA_MAXOMOD_TearALS_final.xlsx", help="Input metadata file"),
   make_option(c("-c","--cluster"), type="character", default="Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv", help="Clustering allocation file from MAXOMOD project Discovery and Validation cohorts"),
   make_option(c("--cohort"), type="character", default="both", help="Choose cohort: VC or DC or both"),
-  make_option(c("--tears"), type= "logical", default=TRUE, help="Include tears: TRUE or FALSE")
+  make_option(c("--tears"), type= "logical", default=TRUE, help="Include tears: TRUE or FALSE"),
+  make_option(c("--DEGs"), type="character", default= NULL, help="Default setting is NULL, but can be set to VC_only, DC_only, both. To visualize DEGs detected in MS-based analysis in discovery cohort, set to DC_only; to visualize DEGs detected in MS-based analysis in validation cohort, set to VC_only; to visualize DEGs detected in both cohorts, set to both."),
+  make_option(c("-e","--genelist"), type="character", default=NULL, help="Genelist file in txt format, column name should be GeneID, then one gene each row")
 )
 opt_parser = OptionParser(option_list=option_list)
 opt = parse_args(opt_parser)
@@ -67,6 +69,50 @@ if (is.null(opt$tears)) {
   stop("Please provide the tears option!")
 } else {
   tears <- opt$tears
+}
+
+if (is.null(opt$DEGs)) {
+  print("NO DEGS OPTION SUPPLIED, use all genes detected in NULISAseq panel!")
+} else {
+  DEGs <- opt$DEGs
+  if (DEGs == "VC_only") {
+    DEG_list <- read.csv(paste0("Data/", "/VC_Differential_expression_analysis_for_k2.csv"))
+    DEG_list = DEG_list[which(DEG_list$fdr < 0.05),]
+  } else if (DEGs == "DC_only") {
+    DEG_list <- read.csv(paste0("Data/", "DC_Differential_expression_analysis_for_k2.csv"))
+    DEG_list = DEG_list[which(DEG_list$fdr < 0.05),]
+  } else if (DEGs == "both") {
+    DC_alpha_DEG_list <- read.csv("Data/DC_alpha_Differential_expression_analysis_for_k2.csv")
+    DC_beta_DEG_list  <- read.csv("Data/DC_beta_Differential_expression_analysis_for_k2.csv")
+    VC_alpha_DEG_list <- read.csv("Data/VC_alpha_Differential_expression_analysis_for_k2.csv")
+    VC_beta_DEG_list  <- read.csv("Data/VC_beta_Differential_expression_analysis_for_k2.csv")
+
+    add_prefix_except <- function(df, prefix, except = c("name","UniProtName","ID")) {
+      keep <- intersect(except, colnames(df))
+      other <- setdiff(colnames(df), keep)
+      colnames(df)[match(other, colnames(df))] <- paste0(prefix, other)
+      df
+    }
+
+    # rename columns with cohort prefix
+    DC_alpha2 <- add_prefix_except(DC_alpha_DEG_list, "DC_")
+    VC_alpha2 <- add_prefix_except(VC_alpha_DEG_list, "VC_")
+    DC_beta2  <- add_prefix_except(DC_beta_DEG_list,  "DC_")
+    VC_beta2  <- add_prefix_except(VC_beta_DEG_list,  "VC_")
+
+    # merge by annotation columns
+    alpha_DEG_list <- merge(DC_alpha2, VC_alpha2,
+                            by = c("name","UniProtName","ID"),
+                            all = FALSE)
+    alpha_DEG_list$subtype <- "alpha"
+
+    beta_DEG_list <- merge(DC_beta2, VC_beta2,
+                          by = c("name","UniProtName","ID"),
+                          all = FALSE)
+    beta_DEG_list$subtype <- "beta"
+
+    DEG_list <- rbind(alpha_DEG_list, beta_DEG_list)
+  }
 }
 #=================Data Processing=================
 # target detectability
@@ -201,6 +247,32 @@ if (cohort == "VC") {
 
 if ("IFNA2" %in% npq_counts$Target) {
   npq_counts <- npq_counts %>% filter(Target != "IFNA2")
+}
+
+if (is.null(DEGs)) {
+  print("NO DEGS OPTION SUPPLIED, use all genes detected in NULISAseq panel!")
+} else if (DEGs %in% c("VC_only", "DC_only", "both")) {
+  if (DEGs == "VC_only") {
+  npq_counts = npq_counts[which(npq_counts$Target %in% DEG_list$name),]
+  DEG_list = DEG_list %>% dplyr::filter(name %in% npq_counts$Target)
+  writexl::write_xlsx(DEG_list, paste0(output_dir, "/DEG_list.xlsx"))
+  } else if (DEGs == "DC_only") {
+  npq_counts = npq_counts[which(npq_counts$Target %in% DEG_list$name),]
+  DEG_list = DEG_list %>% dplyr::filter(name %in% npq_counts$Target)
+  writexl::write_xlsx(DEG_list, paste0(output_dir, "/DEG_list.xlsx"))
+  } else if (DEGs == "both") {
+  npq_counts = npq_counts[which(npq_counts$Target %in% DEG_list$name),]
+  DEG_list = DEG_list %>% dplyr::filter(name %in% npq_counts$Target)
+  writexl::write_xlsx(DEG_list, paste0(output_dir, "/DEG_list.xlsx"))
+} 
+}
+
+if(is.null(opt$genelist)) {
+  print("NO GENELIST OPTION SUPPLIED, use all genes detected in NULISAseq panel!")
+} else {
+  genelist = opt$genelist
+  genelist <- read.table(opt$genelist, header = TRUE, sep = "\t")
+  npq_counts <- npq_counts %>% filter(Target %in% genelist$GeneID)
 }
 
 writexl::write_xlsx(npq_counts, paste0(output_dir, "/npq_counts.xlsx"))
