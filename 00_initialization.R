@@ -22,9 +22,9 @@ if (is.null(opt$input)) {
   input_file <- opt$input
   npq_counts <- read_excel(input_file,sheet = "NPQ Counts")
   # Aβ38, Aβ40, Aβ42 display error
-  npq_counts$Target[npq_counts$Target == "AÎ²38"] = "Aβ38"
-  npq_counts$Target[npq_counts$Target == "AÎ²40"] = "Aβ40"
-  npq_counts$Target[npq_counts$Target == "AÎ²42"] = "Aβ42"
+  npq_counts$Target[npq_counts$Target == "AÎ²38"] = "Abeta38"
+  npq_counts$Target[npq_counts$Target == "AÎ²40"] = "Abeta40"
+  npq_counts$Target[npq_counts$Target == "AÎ²42"] = "Abeta42"
 }
 
 if (is.null(opt$output)) {
@@ -202,6 +202,11 @@ if (cohort == "VC") {
 if ("IFNA2" %in% npq_counts$Target) {
   npq_counts <- npq_counts %>% filter(Target != "IFNA2")
 }
+
+# Aβ38, Aβ40, Aβ42 display error (if it's called Aβ38 or AÎ²38)
+target_detectability$Target[target_detectability$Target == "Aβ38" | target_detectability$Target == "AÎ²38"] = "Abeta38"
+target_detectability$Target[target_detectability$Target == "Aβ40" | target_detectability$Target == "AÎ²40"] = "Abeta40"
+target_detectability$Target[target_detectability$Target == "Aβ42" | target_detectability$Target == "AÎ²42"] = "Abeta42"
 
 writexl::write_xlsx(npq_counts, paste0(output_dir, "/npq_counts.xlsx"))
 writexl::write_xlsx(target_detectability, paste0(output_dir, "/target_detectability.xlsx"))
