@@ -243,3 +243,33 @@ Rscript Script/01_data_mining.R --input CNS_immune/Specific_proteins/Immune_pane
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/blue/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/blue/02_Analysis_Groups --subtype FALSE --metadata CNS_immune/Specific_proteins/Immune_panel/blue/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/blue/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/blue/01_Data_Mining/td.xlsx --top_n 20
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/blue/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/blue/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/blue/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/blue/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/blue/01_Data_Mining/td.xlsx --top_n 20
+
+#################################### Find which proteins are commen with MS-based analysis ###################################
+# library(readxl)
+# CNS = read_excel("/Users/xliu2942/Documents/Projects/NULISA_MAXOMOD/CNS_immune/Results/CNS_panel/With_tears/00_Initialization/target_detectability.xlsx")
+# Immune = read_excel("/Users/xliu2942/Documents/Projects/NULISA_MAXOMOD/CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/target_detectability.xlsx")
+
+# DC = read.csv("/Users/xliu2942/Documents/Projects/NULISA_MAXOMOD/Data/DC_Differential_expression_analysis_for_k2.csv")
+# VC = read.csv("/Users/xliu2942/Documents/Projects/NULISA_MAXOMOD/Data/VC_Differential_expression_analysis_for_k2.csv")
+
+# # Find the common proteins between CNS and Immune
+# output_dir = "/Users/xliu2942/Documents/Projects/NULISA_MAXOMOD/Data"
+# common_proteins_CNS_DC = intersect(CNS$Target, DC$name)
+# common_proteins_CNS_VC = intersect(CNS$Target, VC$name)
+# common_proteins_Immune_DC = intersect(Immune$Target, DC$name)
+# common_proteins_Immune_VC = intersect(Immune$Target, VC$name)
+# #column name is "GeneID"
+# library(data.table)
+# write.table(common_proteins_CNS_DC, file.path(output_dir, "common_proteins_CNS_DC.txt"), quote = FALSE, row.names = FALSE, col.names = "GeneID")
+# write.table(common_proteins_CNS_VC, file.path(output_dir, "common_proteins_CNS_VC.txt"), quote = FALSE, row.names = FALSE, col.names = "GeneID")
+# write.table(common_proteins_Immune_DC, file.path(output_dir, "common_proteins_Immune_DC.txt"), quote = FALSE, row.names = FALSE, col.names = "GeneID")
+# write.table(common_proteins_Immune_VC, file.path(output_dir, "common_proteins_Immune_VC.txt"), quote = FALSE, row.names = FALSE, col.names = "GeneID")
+
+# # Print the common proteins
+# print(paste("Common proteins between CNS and DC:", length(common_proteins_CNS_DC)))
+# print(paste("Common proteins between CNS and VC:", length(common_proteins_CNS_VC)))
+# print(paste("Common proteins between Immune and DC:", length(common_proteins_Immune_DC)))
+# print(paste("Common proteins between Immune and VC:", length(common_proteins_Immune_VC)))
+
+
+bash Script/Run_commen_between_cohorts.sh
