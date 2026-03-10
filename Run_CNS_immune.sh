@@ -273,3 +273,91 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_
 
 
 bash Script/Run_commen_between_cohorts.sh
+
+#################### Differential Expression Analysis ####################
+# iterate for matrix_type: CSF, PLASMA, SERUM, TEARS
+# CNS panel, Without tears, No subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# CNS panel, Without tears, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# CNS panel, PLASMA
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# CNS panel, PLASMA, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# CNS panel, SERUM
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# CNS panel, SERUM, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# CNS panel, TEARS
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_005 --matrix_type TEARS --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# CNS panel, TEARS, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_005 --matrix_type TEARS --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# immune panel, Without tears, No subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# immune panel, Without tears, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# immune panel, PLASMA
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# immune panel, PLASMA, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# immune panel, SERUM
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
+
+# immune panel, SERUM, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+
+###FDR 0.1###
+# CNS panel, Without tears, No subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# CNS panel, Without tears, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+# CNS panel, PLASMA
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# CNS panel, PLASMA, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+# CNS panel, SERUM
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# CNS panel, SERUM, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+# CNS panel, TEARS
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_01 --matrix_type TEARS --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# CNS panel, TEARS, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_01 --matrix_type TEARS --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+# immune panel, Without tears, No subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# immune panel, Without tears, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+# immune panel, PLASMA
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# immune panel, PLASMA, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+# immune panel, SERUM
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.1
+
+# immune panel, SERUM, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
