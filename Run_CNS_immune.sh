@@ -361,3 +361,45 @@ Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_pa
 
 # immune panel, SERUM, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
+
+####### Signed p-value plot
+# CNS panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.05
+
+# CNS panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+# CNS panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+# Immune panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.05
+
+# Immune panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+# Immune panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+
+# padj 0.1
+# CNS panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p01 --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.1
+
+# CNS panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p01 --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# CNS panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p01 --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# Immune panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01 --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.1
+
+# Immune panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01 --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# Immune panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01 --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# # CNS panel, Without tears, No subtype, CSF vs PLASMA, alpha_beta
+# Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_subtypes_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_subtypes_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 PLASMA --comparison alpha_beta
