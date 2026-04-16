@@ -419,3 +419,5 @@ Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_te
 
 # combine trajectory plots for all fluids
 Rscript Script/06_Trajectory_progressionRate_combine_biofluid_GAM.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/06_Trajectory_progressionRate_combine_biofluid --column_name progression_rate --fluids CSF,PLASMA,SERUM --n_row_clusters 4 --n_smooth_grid 40 --heatmap_width_cm 14 --pdf_width 10 --pdf_height 8 --progression_sd_k 3
+
+Rscript Script/06_Trajectory_progressionRate_combine_biofluid_GAM_Specific_branch_order.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/06_Trajectory_progressionRate_combine_biofluid_ordered --column_name progression_rate --fluids CSF,PLASMA,SERUM --n_row_clusters 4 --n_smooth_grid 40 --heatmap_width_cm 14 --pdf_width 10 --pdf_height 8 --progression_sd_k 3
