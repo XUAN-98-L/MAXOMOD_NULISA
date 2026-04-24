@@ -14,7 +14,8 @@ run_full_pipeline <- function(protein_data, sample_map, td, prefix = "ALL",
                               covariates = c("age","sex"),
                               high_detectability = FALSE,
                               output_dir = "Results/02_Analysis_Groups",
-                              subtype = FALSE) {
+                              subtype = FALSE,
+                              top_n = 15L) {
   
   message("Preparing dataset...")
   df <- prepare_dataset(protein_data, sample_map)
@@ -74,16 +75,27 @@ run_full_pipeline <- function(protein_data, sample_map, td, prefix = "ALL",
              p_top_n, width = width, height = height)
     }
     
-    # p_top15_adj <- plot_top_proteins_violin(df_fluid_adj, stats_adj, td, fluid,adjusted = TRUE)
+    p_top_n_adj <- plot_top_proteins_violin(
+      df_fluid_adj, stats_adj, td, fluid,
+      top_n = top_n,
+      subtype = subtype,
+      adjusted = TRUE
+    )
     
-    # if(!high_detectability) {
-    #   filespath = paste0(output_dir, "/boxplots_", fluid, "/")
-    #   if (!file.exists(filespath)) {
-    #     dir.create(filespath, recursive = TRUE)
-    #   }
-    #   ggsave(paste0(filespath, "/", prefix, "_Top15_LOD_", fluid, "_adj.pdf"),
-    #          p_top15_adj, width = 15, height = 18)
-    # }
+    if(!high_detectability) {
+      filespath = paste0(output_dir, "/boxplots_", fluid, "/")
+      if (!file.exists(filespath)) {
+        dir.create(filespath, recursive = TRUE)
+      }
+      width_adj <- max(ceiling(top_n / 5) * 0.6 + 6, 15)
+      height_adj <- max(ceiling(top_n / 5) * 0.3 + 6, 12)
+      ggsave(
+        paste0(filespath, "/", prefix, "_Top", top_n, "_LOD_", fluid, "_adj.pdf"),
+        p_top_n_adj,
+        width = width_adj,
+        height = height_adj
+      )
+    }
     
     # All proteins (multi-page PDF)
     targets <- unique(df$Target)
@@ -103,21 +115,25 @@ run_full_pipeline <- function(protein_data, sample_map, td, prefix = "ALL",
       dev.off()
     }
     
-    # targets <- unique(df_fluid_adj$Target)
+    targets <- unique(df_fluid_adj$Target)
    
-    # if(!high_detectability) {
-    #   filespath = paste0(output_dir, "/boxplots_", fluid, "/")
-    #   if (!file.exists(filespath)) {
-    #     dir.create(filespath, recursive = TRUE)
-    #   }
-    #   pdf(paste0(filespath, "/", prefix, "_ALLproteins_LOD_", fluid, "_others_adj.pdf"),
-    #       width = 6, height = 5.7)
-    #   for (t in targets) {
-    #     p <- plot_single_protein_violin(df_fluid_adj, stats_adj, td, fluid, t,adjusted = TRUE)
-    #     print(p)
-    #   }
-    #   dev.off()
-    # }
+    if(!high_detectability) {
+      filespath = paste0(output_dir, "/boxplots_", fluid, "/")
+      if (!file.exists(filespath)) {
+        dir.create(filespath, recursive = TRUE)
+      }
+      pdf(paste0(filespath, "/", prefix, "_ALLproteins_LOD_", fluid, "_others_adj.pdf"),
+          width = 6, height = 5.7)
+      for (t in targets) {
+        p <- plot_single_protein_violin(
+          df_fluid_adj, stats_adj, td, fluid, t,
+          subtype = subtype,
+          adjusted = TRUE
+        )
+        print(p)
+      }
+      dev.off()
+    }
     
   }
   
@@ -314,8 +330,15 @@ extract_pvalues <- function(stats_list) {
 }
 
 # Top N significantly changing proteins 
-plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subtype = FALSE) {
-  
+plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subtype = FALSE, adjusted = FALSE) {
+  y_col <- if (isTRUE(adjusted)) "NPQ_adj" else "NPQ"
+  y_lab <- if (isTRUE(adjusted)) "NPQ (adjusted)" else "NPQ"
+
+  if (isTRUE(adjusted) && !y_col %in% names(df)) {
+    warning("Column ", y_col, " not found for adjusted plot; skipping.")
+    return(NULL)
+  }
+
   # Check ANOVA results
   anova_res <- stats_list$anova
   
@@ -346,8 +369,13 @@ plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subt
     return(NULL)
   }
   
-  # Pairwise p-values
-  pairwise_res <- get_pairwise_sig(stats_list, fluid, top_proteins, df_top)
+  # Pairwise p-values (get_pairwise_sig uses column name NPQ for y-range)
+  df_for_pairwise <- if (isTRUE(adjusted)) {
+    df_top %>% dplyr::mutate(NPQ = .data[["NPQ_adj"]])
+  } else {
+    df_top
+  }
+  pairwise_res <- get_pairwise_sig(stats_list, fluid, top_proteins, df_top,adjusted = adjusted)
   
   # # LOD per protein (original LOD-plate)
   # lod_df <- df_top %>%
@@ -366,7 +394,7 @@ plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subt
     group_by(Target) %>%
     summarise(
       LOD_val = ProjectLOD %>% unique(),
-      max_val = max(NPQ, na.rm = TRUE)
+      max_val = max(.data[[y_col]], na.rm = TRUE)
     ) %>%
     mutate(y_position_text = LOD_val * 1.02) %>%
     ungroup()
@@ -380,7 +408,7 @@ plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subt
   df_top$type = droplevels(df_top$type)
 
   # plot
-  p <- ggplot(df_top, aes(x = type, y = NPQ, fill = type)) +
+  p <- ggplot(df_top, aes(x = type, y = .data[[y_col]], fill = type)) +
     geom_violin(trim = FALSE, alpha = 0.4) +
     geom_boxplot(width = 0.2, outlier.shape = NA) +
     geom_jitter(data = subset(df_top, type != "others"),
@@ -398,8 +426,12 @@ plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subt
                                     'beta' = '#8DA0CB'))  +
     labs(
       x = "Group",
-      y = "NPQ",
-      title = paste("Top", top_n, "Protein Expression -", fluid)
+      y = y_lab,
+      title = if (isTRUE(adjusted)) {
+        paste0("Top ", top_n, " Protein Expression - ", fluid, " (adjusted)")
+      } else {
+        paste0("Top ", top_n, " Protein Expression - ", fluid)
+      }
       ) +
     theme(
       panel.background  = element_rect(fill = "white", color = NA),
@@ -445,7 +477,7 @@ plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subt
       label = "p_label",
       y.position = "y.position",
       size = 5,
-      bracket.nudge.y = 0.02 * max(df_top$NPQ, na.rm = TRUE),
+      bracket.nudge.y = 0.02 * max(df_top[[y_col]], na.rm = TRUE),
       inherit.aes = FALSE
     )
   }
@@ -454,7 +486,7 @@ plot_top_proteins_violin <- function(df, stats_list, td, fluid, top_n = 15, subt
 }
 
 # Get pairwise p-values filtered by cutoff for plotting
-get_pairwise_sig <- function(stats_list, fluid, proteins, df_top, p_cutoff = 0.1) {
+get_pairwise_sig <- function(stats_list, fluid, proteins, df_top, p_cutoff = 0.1,adjusted = FALSE) {
   
   pairwise_df <- stats_list$pairwise %>%
     filter(Target %in% proteins, p <= p_cutoff)
@@ -465,8 +497,12 @@ get_pairwise_sig <- function(stats_list, fluid, proteins, df_top, p_cutoff = 0.1
   max_vals <- df_top %>%
     group_by(Target) %>%
     summarise(
-      max_y = max(NPQ, na.rm = TRUE),
-      y_step = diff(range(NPQ, na.rm = TRUE)) * 0.08,
+      max_y = ifelse(adjusted,
+                     max(NPQ_adj, na.rm = TRUE),
+                     max(NPQ, na.rm = TRUE)),
+      y_step = ifelse(adjusted,
+                      diff(range(NPQ_adj, na.rm = TRUE)) * 0.08,
+                      diff(range(NPQ, na.rm = TRUE)) * 0.08),
       .groups = "drop"
     )
   
@@ -484,13 +520,30 @@ get_pairwise_sig <- function(stats_list, fluid, proteins, df_top, p_cutoff = 0.1
 }
 
 # Single proteins
-plot_single_protein_violin <- function(df, stats_list, td, fluid, protein, subtype = FALSE) {
-  
-  df_prot <- df %>% filter(SampleMatrixType == fluid, 
-                           Target == protein,
-                           type %in% c("ALS","CTRL","alpha","beta"))
+plot_single_protein_violin <- function(df, stats_list, td, fluid, protein, subtype = FALSE, adjusted = FALSE) {
+  y_col <- if (isTRUE(adjusted)) "NPQ_adj" else "NPQ"
+  y_lab <- if (isTRUE(adjusted)) "NPQ (adjusted)" else "NPQ"
+
+  if (isTRUE(adjusted) && !y_col %in% names(df)) {
+    warning("Column ", y_col, " not found for adjusted plot; skipping ", protein, ".")
+    return(NULL)
+  }
+
+  keep_types <- if (isTRUE(subtype)) c("CTRL", "alpha", "beta") else c("CTRL", "ALS")
+  df_prot <- df %>% filter(
+    SampleMatrixType == fluid,
+    Target == protein,
+    type %in% keep_types
+  )
   anova_p <- stats_list$anova %>% filter(Target == protein) %>% pull(p)
-  pairwise_res <- get_pairwise_sig(stats_list, fluid, protein, df_top = df_prot)
+  df_for_pairwise <- if (isTRUE(adjusted)) {
+    df_prot %>% dplyr::mutate(NPQ = .data[["NPQ_adj"]])
+  } else {
+    df_prot
+  }
+  pairwise_res <- get_pairwise_sig(
+    stats_list, fluid, protein, df_top = df_for_pairwise, adjusted = adjusted
+  )
   
   # Determine type order
   if (subtype == FALSE) {
@@ -513,16 +566,15 @@ plot_single_protein_violin <- function(df, stats_list, td, fluid, protein, subty
   lod_df <- df_prot %>%
     summarise(
       LOD_val = get_project_lod(protein, fluid, td),
-      #max_val = ifelse(adjusted, max(NPQ_adj, na.rm = TRUE),max(NPQ, na.rm = TRUE))
-      max_val = max(NPQ, na.rm = TRUE)
+      max_val = max(.data[[y_col]], na.rm = TRUE)
     ) %>%
     mutate(y_position_text = LOD_val * 1.02) %>%
     ungroup()
   
-  max_val <- max(df_prot$NPQ, na.rm = TRUE)
+  max_val <- max(df_prot[[y_col]], na.rm = TRUE)
   y_text <- max_val * 1.02
   
-  p <- ggplot(df_prot, aes(x = type, y = NPQ, fill = type)) +
+  p <- ggplot(df_prot, aes(x = type, y = .data[[y_col]], fill = type)) +
     geom_violin(trim = FALSE, alpha = 0.4) +
     geom_boxplot(width = 0.2, outlier.shape = NA) +
     geom_jitter(data = subset(df_prot, type != "others"),
@@ -539,8 +591,8 @@ plot_single_protein_violin <- function(df, stats_list, td, fluid, protein, subty
                                    'beta' = '#8DA0CB')) +
     labs(
       x = "Group",
-      y = "NPQ",
-      title = paste(protein),
+      y = y_lab,
+      title = if (isTRUE(adjusted)) paste0(protein, " (adjusted)") else protein,
       subtitle = paste("ANOVA p =", signif(anova_p, 3),
                        "; LOD =", signif(LOD_val,3))) +
     theme_test() + 
@@ -724,7 +776,8 @@ results_ALL <- run_full_pipeline(
     dplyr::select(SampleMatrixType,Target,ProjectLOD) %>% distinct(),
   prefix          = "ALLsamples",
   output_dir      = output_dir,
-  subtype         = subtype
+  subtype         = subtype,
+  top_n           = top_n
 )
 
 saveRDS(results_ALL, paste0(output_dir, "/results_ALL.rds"))

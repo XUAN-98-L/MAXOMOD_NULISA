@@ -3,10 +3,8 @@
 # then cluster rows (proteins) on the concatenated matrix.
 # Heatmap rows (K>=2): ordered cluster 1..K top to bottom; hclust leaf order within cluster; row dendrogram omitted.
 # Between-cluster spacing: gaps_row (pheatmap sets row_gap to unit(4, "bigpts") internally; do not pass row_gap again).
-# NPQ ~ progression: (1) mgcv::gam Gamma(log) with s(progression) vs linear progression (same family;
-# compare AIC to flag linear vs nonlinear). (2) robustbase::lmrob on NPQ ~ progression + age + sex (NPQ is already on
-# your analysis scale, e.g. log — no extra log() in code). Covariates: age_z + sex
-# within each biofluid. Curves use smooth GAM at reference covariates; fallback smooth.spline if gam fails.
+# NPQ ~ progression: Gamma GAM linear vs s(progression); lmrob linear. shape_by_gamma_AIC: nonlinear if smooth p<0.05,
+# Edf>2, AIC_smooth<AIC_linear; else linear if lmrob progression p<0.05; else neither. Covariates age_z + sex_f per fluid.
 # Run log: trajectory_curve_source_*.csv + table() counts — mgcv vs fallback (see curve_method column).
 
 ######### Functions ##########################
@@ -205,7 +203,36 @@ gen_gam_curves_npq_fixed_grid <- function(
   out
 }
 
-# Per protein×fluid: Gamma(log) linear gam vs smooth gam (AIC comparable); lmrob on NPQ (no extra log) for robust slope.
+# s() row of summary(fit)$s.table for prog_col smooth.
+extract_gam_smooth_term_edf_p <- function(fit, prog_col) {
+  edf <- NA_real_
+  pv <- NA_real_
+  if (is.null(fit)) {
+    return(list(edf = edf, p = pv))
+  }
+  sm <- tryCatch(summary(fit), error = function(e) NULL)
+  if (is.null(sm) || is.null(sm$s.table) || nrow(sm$s.table) == 0L) {
+    return(list(edf = edf, p = pv))
+  }
+  st <- sm$s.table
+  rn <- rownames(st)
+  idx <- grep(paste0("^s\\(", prog_col), rn)[1L]
+  if (is.na(idx)) {
+    idx <- 1L
+  }
+  cn <- colnames(st)
+  edf_col <- grep("^edf$", cn, ignore.case = TRUE)[1L]
+  pcol <- grep("p[-. ]?value|Pr\\(", cn, ignore.case = TRUE)[1L]
+  if (!is.na(edf_col)) {
+    edf <- suppressWarnings(as.numeric(st[idx, edf_col]))
+  }
+  if (!is.na(pcol)) {
+    pv <- suppressWarnings(as.numeric(st[idx, pcol]))
+  }
+  list(edf = edf, p = pv)
+}
+
+# Per protein×fluid: classify nonlinear vs linear vs neither (see file header); lmrob + Gamma GAM terms; delta AIC kept for reference.
 build_trajectory_model_comparison <- function(
   df,
   prog_col,
@@ -235,6 +262,9 @@ build_trajectory_model_comparison <- function(
         AIC_gam_linear = NA_real_,
         AIC_gam_smooth = NA_real_,
         delta_AIC_smooth_minus_linear = NA_real_,
+        gam_smooth_term_edf = NA_real_,
+        gam_smooth_term_pvalue = NA_real_,
+        gam_AIC_prefers_smooth = NA,
         shape_by_gamma_AIC = "insufficient_n",
         lmrob_NPQ_progression_coef = NA_real_,
         lmrob_progression_SE = NA_real_,
@@ -302,19 +332,20 @@ build_trajectory_model_comparison <- function(
     } else {
       NA_real_
     }
-    shape <- if (!smooth_attempted) {
-      "smooth_gam_not_attempted"
-    } else if (!is.finite(aic_lin) && !is.finite(aic_smooth)) {
-      "gam_failed"
-    } else if (!is.finite(delta)) {
-      "gam_partial_failure"
-    } else if (delta > delta_aic_cut) {
-      "linear"
-    } else if (delta < -delta_aic_cut) {
-      "nonlinear"
+
+    sp_smooth <- extract_gam_smooth_term_edf_p(best_fit, prog_col)
+    gam_smooth_edf <- sp_smooth$edf
+    gam_smooth_p <- sp_smooth$p
+    aic_prefers_smooth <- if (is.finite(aic_lin) && is.finite(aic_smooth)) {
+      aic_smooth < aic_lin
     } else {
-      "equivocal"
+      NA
     }
+    nonlinear_ok <- isTRUE(smooth_attempted) &&
+      !is.null(best_fit) &&
+      is.finite(gam_smooth_p) && gam_smooth_p < 0.05 &&
+      is.finite(gam_smooth_edf) && gam_smooth_edf > 2 &&
+      isTRUE(aic_prefers_smooth)
 
     f_lm <- if (length(levels(sex_f)) >= 2L) {
       stats::as.formula(paste0(value_col, " ~ ", prog_col, " + age_z + sex_f"))
@@ -350,12 +381,24 @@ build_trajectory_model_comparison <- function(
       }
     }
 
+    lmrob_linear_ok <- is.finite(p_prog) && p_prog < 0.05
+    shape <- if (isTRUE(nonlinear_ok)) {
+      "nonlinear"
+    } else if (lmrob_linear_ok) {
+      "linear"
+    } else {
+      "neither"
+    }
+
     rows[[i]] <- data.frame(
       Target = tg,
       n = n,
       AIC_gam_linear = aic_lin,
       AIC_gam_smooth = aic_smooth,
       delta_AIC_smooth_minus_linear = delta,
+      gam_smooth_term_edf = gam_smooth_edf,
+      gam_smooth_term_pvalue = gam_smooth_p,
+      gam_AIC_prefers_smooth = aic_prefers_smooth,
       shape_by_gamma_AIC = shape,
       lmrob_NPQ_progression_coef = coef_prog,
       lmrob_progression_SE = se_prog,
@@ -447,7 +490,7 @@ option_list <- list(
     c("--delta_aic"),
     type = "double",
     default = 2,
-    help = "|AIC_smooth−AIC_linear| threshold: > this favors linear (positive delta) or nonlinear (negative delta)"
+    help = "Legacy: passed to model comparison (shape uses GAM smooth p/Edf/AIC + lmrob p; see CSV columns)"
   ),
   make_option(
     c("--k-max"),

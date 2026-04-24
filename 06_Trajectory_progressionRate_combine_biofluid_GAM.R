@@ -1,10 +1,10 @@
 # Trajectory NPQ across progression — combine CSF / PLASMA / SERUM on one progression grid,
 # per-protein feature = [z-scored smooth CSF | z-scored smooth PLASMA | z-scored smooth SERUM],
 # then cluster rows (proteins) on the concatenated matrix.
-# NPQ ~ progression: (1) mgcv::gam Gamma(log) with s(progression) vs linear progression (same family;
-# compare AIC to flag linear vs nonlinear). (2) robustbase::lmrob on NPQ ~ progression + age + sex (NPQ is already on
-# your analysis scale, e.g. log — no extra log() in code). Covariates: age_z + sex
-# within each biofluid. Curves use smooth GAM at reference covariates; fallback smooth.spline if gam fails.
+# NPQ ~ progression: (1) mgcv::gam Gamma(log): linear NPQ_pos ~ progression vs smooth s(progression), age_z, sex_f.
+# (2) robustbase::lmrob on NPQ ~ progression + age_z + sex_f (NPQ on your scale — no extra log()). Classification
+# shape_by_gamma_AIC: nonlinear if smooth-term p<0.05, Edf>2, and AIC_smooth < AIC_linear; else linear if lmrob
+# progression p<0.05; else neither. Curves use smooth GAM; fallback smooth.spline if gam fails.
 # Run log: trajectory_curve_source_*.csv + table() counts — mgcv vs fallback (see curve_method column).
 
 ######### Functions ##########################
@@ -203,7 +203,36 @@ gen_gam_curves_npq_fixed_grid <- function(
   out
 }
 
-# Per protein×fluid: Gamma(log) linear gam vs smooth gam (AIC comparable); lmrob on NPQ (no extra log) for robust slope.
+# s() row of summary(fit)$s.table for prog_col smooth.
+extract_gam_smooth_term_edf_p <- function(fit, prog_col) {
+  edf <- NA_real_
+  pv <- NA_real_
+  if (is.null(fit)) {
+    return(list(edf = edf, p = pv))
+  }
+  sm <- tryCatch(summary(fit), error = function(e) NULL)
+  if (is.null(sm) || is.null(sm$s.table) || nrow(sm$s.table) == 0L) {
+    return(list(edf = edf, p = pv))
+  }
+  st <- sm$s.table
+  rn <- rownames(st)
+  idx <- grep(paste0("^s\\(", prog_col), rn)[1L]
+  if (is.na(idx)) {
+    idx <- 1L
+  }
+  cn <- colnames(st)
+  edf_col <- grep("^edf$", cn, ignore.case = TRUE)[1L]
+  pcol <- grep("p[-. ]?value|Pr\\(", cn, ignore.case = TRUE)[1L]
+  if (!is.na(edf_col)) {
+    edf <- suppressWarnings(as.numeric(st[idx, edf_col]))
+  }
+  if (!is.na(pcol)) {
+    pv <- suppressWarnings(as.numeric(st[idx, pcol]))
+  }
+  list(edf = edf, p = pv)
+}
+
+# Per protein×fluid: classify nonlinear vs linear vs neither (see file header); lmrob + Gamma GAM terms; delta AIC kept for reference.
 build_trajectory_model_comparison <- function(
   df,
   prog_col,
@@ -233,6 +262,9 @@ build_trajectory_model_comparison <- function(
         AIC_gam_linear = NA_real_,
         AIC_gam_smooth = NA_real_,
         delta_AIC_smooth_minus_linear = NA_real_,
+        gam_smooth_term_edf = NA_real_,
+        gam_smooth_term_pvalue = NA_real_,
+        gam_AIC_prefers_smooth = NA,
         shape_by_gamma_AIC = "insufficient_n",
         lmrob_NPQ_progression_coef = NA_real_,
         lmrob_progression_SE = NA_real_,
@@ -300,19 +332,20 @@ build_trajectory_model_comparison <- function(
     } else {
       NA_real_
     }
-    shape <- if (!smooth_attempted) {
-      "smooth_gam_not_attempted"
-    } else if (!is.finite(aic_lin) && !is.finite(aic_smooth)) {
-      "gam_failed"
-    } else if (!is.finite(delta)) {
-      "gam_partial_failure"
-    } else if (delta > delta_aic_cut) {
-      "linear"
-    } else if (delta < -delta_aic_cut) {
-      "nonlinear"
+
+    sp_smooth <- extract_gam_smooth_term_edf_p(best_fit, prog_col)
+    gam_smooth_edf <- sp_smooth$edf
+    gam_smooth_p <- sp_smooth$p
+    aic_prefers_smooth <- if (is.finite(aic_lin) && is.finite(aic_smooth)) {
+      aic_smooth < aic_lin
     } else {
-      "equivocal"
+      NA
     }
+    nonlinear_ok <- isTRUE(smooth_attempted) &&
+      !is.null(best_fit) &&
+      is.finite(gam_smooth_p) && gam_smooth_p < 0.05 &&
+      is.finite(gam_smooth_edf) && gam_smooth_edf > 2 &&
+      isTRUE(aic_prefers_smooth)
 
     f_lm <- if (length(levels(sex_f)) >= 2L) {
       stats::as.formula(paste0(value_col, " ~ ", prog_col, " + age_z + sex_f"))
@@ -348,18 +381,145 @@ build_trajectory_model_comparison <- function(
       }
     }
 
+    lmrob_linear_ok <- is.finite(p_prog) && p_prog < 0.05
+    shape <- if (isTRUE(nonlinear_ok)) {
+      "nonlinear"
+    } else if (lmrob_linear_ok) {
+      "linear"
+    } else {
+      "neither"
+    }
+
     rows[[i]] <- data.frame(
       Target = tg,
       n = n,
       AIC_gam_linear = aic_lin,
       AIC_gam_smooth = aic_smooth,
       delta_AIC_smooth_minus_linear = delta,
+      gam_smooth_term_edf = gam_smooth_edf,
+      gam_smooth_term_pvalue = gam_smooth_p,
+      gam_AIC_prefers_smooth = aic_prefers_smooth,
       shape_by_gamma_AIC = shape,
       lmrob_NPQ_progression_coef = coef_prog,
       lmrob_progression_SE = se_prog,
       lmrob_progression_pvalue = p_prog,
       lmrob_r_squared = r2_lmrob,
       lmrob_adj_r_squared = adjr2_lmrob,
+      stringsAsFactors = FALSE
+    )
+  }
+  dplyr::bind_rows(rows)
+}
+
+# Per target: same Gamma smooth GAM as trajectory (REML, gamma grid); Edf and p-value for s(progression) from summary()$s.table.
+gam_progression_smooth_term_stats <- function(
+  df,
+  prog_col,
+  value_col,
+  id_col,
+  min_n_gam = 15L,
+  gamma_seq = seq(0.5, 5, by = 1L),
+  k_max = 10L
+) {
+  if (!all(c("age_z", "sex_f") %in% names(df))) {
+    stop("df must contain age_z and sex_f.")
+  }
+  targets <- unique(as.character(df[[id_col]]))
+  rows <- vector("list", length(targets))
+  for (i in seq_along(targets)) {
+    tg <- targets[i]
+    sub <- df[as.character(df[[id_col]]) == tg, , drop = FALSE]
+    ok <- is.finite(sub[[value_col]]) & is.finite(sub[[prog_col]]) &
+      is.finite(sub$age_z) & !is.na(sub$sex_f)
+    sub <- sub[ok, , drop = FALSE]
+    n <- nrow(sub)
+
+    smooth_edf <- NA_real_
+    smooth_p <- NA_real_
+    AIC_smooth <- NA_real_
+    gamma_chosen <- NA_real_
+    smooth_status <- "not_attempted"
+
+    if (n < 4L) {
+      smooth_status <- "insufficient_n"
+    } else {
+      sub$NPQ_pos <- pmax(sub[[value_col]], 1e-9)
+      sex_f <- factor(sub$sex_f)
+      sub$sex_f <- sex_f
+      k_prog <- max(4L, min(as.integer(k_max), as.integer(nrow(sub) - 3L)))
+      fml_smooth <- if (length(levels(sex_f)) >= 2L) {
+        stats::as.formula(paste0(
+          "NPQ_pos ~ s(", prog_col, ", k=", k_prog, ") + age_z + sex_f"
+        ))
+      } else {
+        stats::as.formula(paste0(
+          "NPQ_pos ~ s(", prog_col, ", k=", k_prog, ") + age_z"
+        ))
+      }
+
+      best_fit <- NULL
+      best_aic <- Inf
+      best_ga <- NA_real_
+
+      if (n >= min_n_gam) {
+        for (ga in gamma_seq) {
+          fit <- tryCatch(
+            mgcv::gam(
+              fml_smooth,
+              family = Gamma(link = "log"),
+              data = sub,
+              method = "REML",
+              select = TRUE,
+              gamma = ga
+            ),
+            error = function(e) NULL
+          )
+          if (!is.null(fit)) {
+            aic <- stats::AIC(fit)
+            if (is.finite(aic) && aic < best_aic) {
+              best_aic <- aic
+              best_fit <- fit
+              best_ga <- ga
+            }
+          }
+        }
+      }
+
+      if (!is.null(best_fit)) {
+        sm <- tryCatch(summary(best_fit), error = function(e) NULL)
+        if (!is.null(sm) && !is.null(sm$s.table) && nrow(sm$s.table) > 0L) {
+          st <- sm$s.table
+          rn <- rownames(st)
+          idx <- grep(paste0("^s\\(", prog_col), rn)[1L]
+          if (is.na(idx)) {
+            idx <- 1L
+          }
+          cn <- colnames(st)
+          edf_col <- grep("^edf$", cn, ignore.case = TRUE)[1L]
+          pcol <- grep("p[-. ]?value|Pr\\(", cn, ignore.case = TRUE)[1L]
+          if (!is.na(edf_col) && !is.na(pcol)) {
+            smooth_edf <- suppressWarnings(as.numeric(st[idx, edf_col]))
+            smooth_p <- suppressWarnings(as.numeric(st[idx, pcol]))
+          }
+          AIC_smooth <- stats::AIC(best_fit)
+          gamma_chosen <- best_ga
+          smooth_status <- "ok"
+        } else {
+          smooth_status <- "summary_failed"
+        }
+      } else if (n >= min_n_gam) {
+        smooth_status <- "gam_failed"
+      }
+    }
+
+    rows[[i]] <- data.frame(
+      Target = tg,
+      n = n,
+      smooth_edf = smooth_edf,
+      smooth_pvalue = smooth_p,
+      AIC_smooth = AIC_smooth,
+      gamma_chosen = gamma_chosen,
+      smooth_status = smooth_status,
       stringsAsFactors = FALSE
     )
   }
@@ -445,7 +605,7 @@ option_list <- list(
     c("--delta_aic"),
     type = "double",
     default = 2,
-    help = "|AIC_smooth−AIC_linear| threshold: > this favors linear (positive delta) or nonlinear (negative delta)"
+    help = "Legacy: passed to model comparison (shape uses GAM smooth p/Edf/AIC + lmrob p; see CSV columns)"
   ),
   make_option(
     c("--k-max"),
@@ -587,6 +747,7 @@ names(mats_smooth) <- fluids
 targets_per_fluid <- vector("list", length(fluids))
 model_cmp_rows <- vector("list", length(fluids))
 curve_trace_rows <- vector("list", length(fluids))
+gam_smooth_nl_rows <- vector("list", length(fluids))
 
 for (fi in seq_along(fluids)) {
   fl <- fluids[fi]
@@ -634,6 +795,17 @@ for (fi in seq_along(fluids)) {
     k_max = k_max
   )
   model_cmp_rows[[fi]]$SampleMatrixType <- fl
+
+  gam_smooth_nl_rows[[fi]] <- gam_progression_smooth_term_stats(
+    df_s,
+    prog_col = column_name,
+    value_col = "NPQ",
+    id_col = "Target",
+    min_n_gam = min_n_gam,
+    gamma_seq = gamma_seq,
+    k_max = k_max
+  )
+  gam_smooth_nl_rows[[fi]]$SampleMatrixType <- fl
 
   ms_full <- gen_gam_curves_npq_fixed_grid(
     df_s,
@@ -684,6 +856,134 @@ message(
   normalizePath(path_model_cmp, winslash = "/", mustWork = FALSE)
 )
 
+plot_dat_lin <- model_cmp_all %>%
+  dplyr::filter(
+    is.finite(.data$lmrob_NPQ_progression_coef),
+    is.finite(.data$lmrob_progression_pvalue),
+    .data$lmrob_progression_pvalue > 0
+  ) %>%
+  dplyr::group_by(.data$SampleMatrixType) %>%
+  dplyr::mutate(
+    p_adj_bh = stats::p.adjust(.data$lmrob_progression_pvalue, method = "BH")
+  ) %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(
+    effect_size = .data$lmrob_NPQ_progression_coef,
+    neglog10p = -log10(.data$lmrob_progression_pvalue),
+    linear_sig = is.finite(.data$lmrob_progression_pvalue) & .data$lmrob_progression_pvalue < 0.05
+  )
+
+line_dat_lin <- plot_dat_lin %>%
+  dplyr::group_by(.data$SampleMatrixType) %>%
+  dplyr::summarise(
+    y_fdr = {
+      p_nom <- .data$lmrob_progression_pvalue
+      p_adj <- .data$p_adj_bh
+      ok <- is.finite(p_nom) & p_nom > 0 & is.finite(p_adj) & p_adj <= 0.05
+      if (any(ok, na.rm = TRUE)) {
+        -log10(max(p_nom[ok], na.rm = TRUE))
+      } else {
+        -log10(0.05)
+      }
+    },
+    .groups = "drop"
+  )
+
+ann_lin <- plot_dat_lin %>%
+  dplyr::filter(.data$linear_sig) %>%
+  dplyr::group_by(.data$SampleMatrixType) %>%
+  dplyr::summarise(
+    n_pos = sum(.data$effect_size > 0, na.rm = TRUE),
+    n_neg = sum(.data$effect_size < 0, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    lab = paste0("Pos corr: ", .data$n_pos, "\nNeg corr: ", .data$n_neg)
+  )
+
+p_lin <- ggplot2::ggplot(
+  plot_dat_lin,
+  ggplot2::aes(x = .data$effect_size, y = .data$neglog10p)
+) +
+  ggplot2::geom_point(
+    ggplot2::aes(color = .data$effect_size),
+    alpha = 0.72,
+    size = 1.75
+  ) +
+  ggplot2::scale_color_gradient2(
+    low = "#79B6E4",
+    mid = "#D9D9D9",
+    high = "#D73027",
+    midpoint = 0,
+    name = "Effect size"
+  ) +
+  ggplot2::geom_vline(xintercept = 0, linetype = "dashed", color = "grey55") +
+  ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", linewidth = 0.4) +
+  ggplot2::geom_text(
+    data = ann_lin,
+    mapping = ggplot2::aes(x = -Inf, y = Inf, label = .data$lab),
+    inherit.aes = FALSE,
+    hjust = -0.03,
+    vjust = 1.2,
+    size = 3.1,
+    color = "grey10"
+  ) +
+  ggplot2::facet_wrap(ggplot2::vars(.data$SampleMatrixType), nrow = 1L, scales = "fixed") +
+  ggplot2::labs(
+    title = paste0("Proteins linearly correlated with ", column_name),
+    x = "Effect size",
+    y = expression(-log[10](italic(p))),
+    color = "Effect size"
+  ) +
+  ggplot2::theme_bw(base_size = 11) +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(face = "bold"),
+    strip.background = ggplot2::element_rect(fill = "grey95", color = NA),
+    legend.position = "right"
+  ) +
+  ggplot2::coord_cartesian(clip = "off")
+
+if (requireNamespace("ggrepel", quietly = TRUE) && nrow(plot_dat_lin) > 0L) {
+  lab_lin <- plot_dat_lin %>%
+    dplyr::filter(.data$linear_sig) %>%
+    dplyr::group_by(.data$SampleMatrixType) %>%
+    dplyr::slice_max(order_by = .data$neglog10p, n = 10L, with_ties = FALSE) %>%
+    dplyr::ungroup()
+  if (nrow(lab_lin) > 0L) {
+    p_lin <- p_lin +
+      ggrepel::geom_text_repel(
+        ggplot2::aes(label = .data$Target),
+        data = lab_lin,
+        size = 2.6,
+        max.overlaps = 40,
+        segment.size = 0.25,
+        box.padding = 0.25,
+        show.legend = FALSE
+      )
+  }
+}
+
+path_pdf_lin <- file.path(
+  output_dir,
+  paste0("fig_lmrob_linear_effect_vs_neglog10p_", fluid_tag, "_", column_name, ".pdf")
+)
+if (nrow(plot_dat_lin) > 0L) {
+  ggplot2::ggsave(
+    filename = path_pdf_lin,
+    plot = p_lin,
+    width = max(9, 3.2 * length(fluids)),
+    height = 4.6,
+    units = "in",
+    limitsize = FALSE
+  )
+  message(
+    "Linear correlation (lmrob) effect vs -log10(p): ",
+    normalizePath(path_pdf_lin, winslash = "/", mustWork = FALSE)
+  )
+} else {
+  message("Skipping lmrob linear correlation figure (no finite coefficient/p-value rows).")
+}
+
 curve_trace_all <- dplyr::bind_rows(curve_trace_rows)
 path_curve_trace <- file.path(
   output_dir,
@@ -700,6 +1000,138 @@ message(
   "Tip: rows with curve_method == \"mgcv_gam_Gamma_log\" used mgcv; ",
   "others used fallback (see prefix fallback_n_lt_* vs fallback_gam_*)."
 )
+
+gam_smooth_nl_all <- dplyr::bind_rows(gam_smooth_nl_rows) %>%
+  dplyr::group_by(.data$SampleMatrixType) %>%
+  dplyr::mutate(
+    p_adj_bh = {
+      pv <- .data$smooth_pvalue
+      ok <- is.finite(pv) & pv > 0
+      out <- rep(NA_real_, length(pv))
+      out[ok] <- stats::p.adjust(pv[ok], method = "BH")
+      out
+    }
+  ) %>%
+  dplyr::ungroup()
+path_gam_smooth_nl <- file.path(
+  output_dir,
+  paste0("gam_smooth_progression_edf_pvalue_", fluid_tag, "_", column_name, ".csv")
+)
+utils::write.csv(gam_smooth_nl_all, path_gam_smooth_nl, row.names = FALSE)
+message(
+  "Gamma GAM smooth-term Edf and p(s(progression)): ",
+  normalizePath(path_gam_smooth_nl, winslash = "/", mustWork = FALSE)
+)
+
+plot_dat_nl <- gam_smooth_nl_all %>%
+  dplyr::filter(
+    .data$smooth_status == "ok",
+    is.finite(.data$smooth_edf),
+    is.finite(.data$smooth_pvalue),
+    .data$smooth_pvalue > 0
+  ) %>%
+  dplyr::mutate(
+    neglog10p = -log10(.data$smooth_pvalue),
+    nonlinear_sig = .data$smooth_edf > 2 & .data$smooth_pvalue < 0.05
+  )
+n_nl_sig <- sum(plot_dat_nl$nonlinear_sig, na.rm = TRUE)
+
+ann_corr_per_fluid <- plot_dat_nl %>%
+  dplyr::group_by(.data$SampleMatrixType) %>%
+  dplyr::summarise(
+    n_corr = sum(.data$smooth_edf > 2 & .data$smooth_pvalue < 0.05, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::mutate(
+    lab = paste0("Correlated proteins: ", .data$n_corr)
+  )
+
+p_gam_nl <- ggplot2::ggplot(
+  plot_dat_nl,
+  ggplot2::aes(x = .data$smooth_edf, y = .data$neglog10p, color = .data$SampleMatrixType)
+) +
+  ggplot2::geom_point(alpha = 0.72, size = 1.75) +
+  ggplot2::geom_vline(xintercept = 2, linetype = "dashed", color = "grey45") +
+  #ggplot2::geom_hline(yintercept = -log10(0.05), linetype = "dashed", color = "black", linewidth = 0.4) +
+  ggplot2::geom_hline(
+    yintercept = -log10(0.05),
+    linetype = "dotdash",
+    color = "black",
+    linewidth = 0.45,
+    alpha = 0.85
+  ) +
+  ggplot2::geom_text(
+    data = ann_corr_per_fluid,
+    mapping = ggplot2::aes(x = -Inf, y = Inf, label = .data$lab),
+    inherit.aes = FALSE,
+    hjust = -0.02,
+    vjust = 1.15,
+    size = 3.1,
+    color = "grey15",
+    fontface = "plain"
+  ) +
+  ggplot2::facet_wrap(ggplot2::vars(.data$SampleMatrixType), nrow = 1L, scales = "fixed") +
+  ggplot2::labs(
+    title = paste0("Non-linear association of NPQ with ", column_name),
+    subtitle = paste0(
+      "Edf > 2 and p < 0.05 (n = ",
+      n_nl_sig,
+      ")"
+    ),
+    x = "Effective degrees of freedom (Edf)",
+    y = expression(-log[10](italic(p))),
+    color = "Fluid"
+  ) +
+  ggplot2::theme_bw(base_size = 11) +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(face = "bold"),
+    strip.background = ggplot2::element_rect(fill = "grey95", color = NA),
+    legend.position = "none"
+  ) +
+  ggplot2::coord_cartesian(clip = "off")
+
+if (requireNamespace("ggrepel", quietly = TRUE) && nrow(plot_dat_nl) > 0L) {
+  lab_df <- plot_dat_nl %>%
+    dplyr::filter(.data$nonlinear_sig) %>%
+    dplyr::group_by(.data$SampleMatrixType) %>%
+    dplyr::slice_max(order_by = .data$neglog10p, n = 10L, with_ties = FALSE) %>%
+    dplyr::ungroup()
+  if (nrow(lab_df) > 0L) {
+    p_gam_nl <- p_gam_nl +
+      ggrepel::geom_text_repel(
+        ggplot2::aes(label = .data$Target),
+        data = lab_df,
+        size = 2.6,
+        max.overlaps = 40,
+        segment.size = 0.25,
+        box.padding = 0.25,
+        show.legend = FALSE
+      )
+  }
+}
+
+path_pdf_gam_nl <- file.path(
+  output_dir,
+  paste0("fig_gam_smooth_progression_edf_vs_neglog10p_", fluid_tag, "_", column_name, ".pdf")
+)
+if (nrow(plot_dat_nl) > 0L) {
+  ggplot2::ggsave(
+    filename = path_pdf_gam_nl,
+    plot = p_gam_nl,
+    width = max(9, 3.2 * length(fluids)),
+    height = 4.2,
+    units = "in",
+    limitsize = FALSE
+  )
+  message(
+    "Non-linearity Edf vs -log10(p): ",
+    normalizePath(path_pdf_gam_nl, winslash = "/", mustWork = FALSE)
+  )
+} else {
+  message(
+    "Skipping fig_gam_smooth_progression_edf_vs_neglog10p PDF (no rows with smooth_status == \"ok\" and finite Edf/p)."
+  )
+}
 
 common_targets <- Reduce(intersect, targets_per_fluid)
 if (length(common_targets) < 2L) {
