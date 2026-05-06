@@ -17,6 +17,11 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Results/CNS_panel/With_te
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Results/CNS_panel/With_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Results/CNS_panel/With_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Results/CNS_panel/With_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Results/CNS_panel/With_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Results/CNS_panel/With_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Results/CNS_panel/With_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/td.xlsx --top_n 20
+
 ###### RUN PCA VISUALIZATION ######
 # rm -rf CNS_immune/Results/CNS_panel/With_tears/03_PCA_v*
 Rscript Script/03_PCA_vis.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/03_PCA_vis --metadata CNS_immune/Results/CNS_panel/With_tears/00_Initialization/all_participants_IDs.xlsx --subtype FALSE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA,TEARS" --adjust FALSE --npq_counts CNS_immune/Results/CNS_panel/With_tears/00_Initialization/npq_counts.xlsx
@@ -54,6 +59,11 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Results/CNS_panel/Without
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
+
 ###### RUN PCA VISUALIZATION ######
 # rm -rf CNS_immune/Results/CNS_panel/Without_tears/03_PCA_v*
 Rscript Script/03_PCA_vis.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/03_PCA_vis --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --subtype FALSE --seed 123 --label FALSE --fluids "CSF,SERUM,PLASMA" --adjust FALSE --npq_counts CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx
@@ -87,6 +97,11 @@ Rscript Script/01_data_mining.R --input CNS_immune/Results/Immune_panel/Without_
 Rscript Script/02_analysis_groups.R --input CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups --subtype FALSE --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
+
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/npq_counts.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Results/Immune_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/td.xlsx --top_n 20
 
 ###### RUN PCA VISUALIZATION ######
 # rm -rf CNS_immune/Results/Immune_panel/Without_tears/03_PCA_v*
@@ -143,6 +158,10 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_pan
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/VC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 # CNS panel, for DC DEGs
 Rscript Script/00_initialization_customised_targets.R --input Data/P005_BSHRI_NULISAseq_CNSDiseasePanel_NPQCounts_2025_03_10.xlsx --output CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization --metadata Data/NULISA_MAXOMOD_TearALS_final.xlsx --cluster "Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv" --cohort VC --tears FALSE --DEGs DC_only
@@ -153,6 +172,11 @@ Rscript Script/01_data_mining.R --input CNS_immune/Specific_proteins/CNS_panel/D
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/02_Analysis_Groups --subtype FALSE --metadata CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
+
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 
 # CNS panel, for common DEGs in both cohort
@@ -165,7 +189,10 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_pan
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_panel/both_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/both_DEGs/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/both_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/both_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/both_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/both_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/both_DEGs/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/CNS_panel/both_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/both_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/both_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/both_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/both_DEGs/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/both_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/both_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/both_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 
 # Immune panel, for VC DEGs
@@ -178,6 +205,10 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/VC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 # Immune panel, for DC DEGs
 Rscript Script/00_initialization_customised_targets.R --input Data/P005_BSHRI_NULISAseq_InflammationPanel_NPQ_03022026.xlsx --output CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization --metadata Data/NULISA_MAXOMOD_TearALS_final.xlsx --cluster "Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv" --cohort VC --tears FALSE --DEGs DC_only
@@ -188,6 +219,12 @@ Rscript Script/01_data_mining.R --input CNS_immune/Specific_proteins/Immune_pane
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/02_Analysis_Groups --subtype FALSE --metadata CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
+
+# limma
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/DC_only_DEGs/01_Data_Mining/td.xlsx --top_n 20
 
 
 # Immune panel, for common DEGs in both cohort
@@ -214,6 +251,11 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_pan
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/turquoise/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/turquoise/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/CNS_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/turquoise/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
+
 # CNS panel, for blue module
 Rscript Script/00_initialization_customised_targets.R --input Data/P005_BSHRI_NULISAseq_CNSDiseasePanel_NPQCounts_2025_03_10.xlsx --output CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization --metadata Data/NULISA_MAXOMOD_TearALS_final.xlsx --cluster "Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv" --cohort VC --tears FALSE --DEGs NULL --genelist Data/blue.txt
 
@@ -224,6 +266,11 @@ Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_pan
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/blue/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/blue/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/blue/01_Data_Mining/td.xlsx --top_n 20
 
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/blue/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/blue/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/blue/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/CNS_panel/blue/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/CNS_panel/blue/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/CNS_panel/blue/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/CNS_panel/blue/01_Data_Mining/td.xlsx --top_n 20
+
 # Immune panel, for turquoise module
 Rscript Script/00_initialization_customised_targets.R --input Data/P005_BSHRI_NULISAseq_InflammationPanel_NPQ_03022026.xlsx --output CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization --metadata Data/NULISA_MAXOMOD_TearALS_final.xlsx --cluster "Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv" --cohort VC --tears FALSE --DEGs NULL --genelist Data/turquoise.txt
 
@@ -233,6 +280,11 @@ Rscript Script/01_data_mining.R --input CNS_immune/Specific_proteins/Immune_pane
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/turquoise/02_Analysis_Groups --subtype FALSE --metadata CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
 
 Rscript Script/02_analysis_groups.R --input CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/turquoise/02_Analysis_Groups_subtypes --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
+
+# limma
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/turquoise/02_Analysis_Groups_limma --subtype FALSE --metadata CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
+
+Rscript Script/02_analysis_groups_limma.R --input CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/npq_counts.xlsx --output CNS_immune/Specific_proteins/Immune_panel/turquoise/02_Analysis_Groups_subtypes_limma --subtype TRUE --metadata CNS_immune/Specific_proteins/Immune_panel/turquoise/00_Initialization/all_participants_IDs.xlsx --target_detectability_extra CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/target_detectability_extra.xlsx --td CNS_immune/Specific_proteins/Immune_panel/turquoise/01_Data_Mining/td.xlsx --top_n 20
 
 # CNS panel, for blue module
 Rscript Script/00_initialization_customised_targets.R --input Data/P005_BSHRI_NULISAseq_InflammationPanel_NPQ_03022026.xlsx --output CNS_immune/Specific_proteins/Immune_panel/blue/00_Initialization --metadata Data/NULISA_MAXOMOD_TearALS_final.xlsx --cluster "Data/clinical_data_with_cluster_DC.csv,Data/clinical_data_with_cluster_VC.csv" --cohort VC --tears FALSE --DEGs NULL --genelist Data/blue.txt
@@ -279,44 +331,86 @@ bash Script/Run_commen_between_cohorts.sh
 # CNS panel, Without tears, No subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # CNS panel, Without tears, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 # CNS panel, PLASMA
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # CNS panel, PLASMA, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 # CNS panel, SERUM
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # CNS panel, SERUM, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 # CNS panel, TEARS
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_005 --matrix_type TEARS --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_005_limma --matrix_type TEARS --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # CNS panel, TEARS, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_005 --matrix_type TEARS --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_005_limma --matrix_type TEARS --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 # immune panel, Without tears, No subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # immune panel, Without tears, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 # immune panel, PLASMA
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # immune panel, PLASMA, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 # immune panel, SERUM
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups/results_ALL.rds --cutoff 0.05
 
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.05
+
 # immune panel, SERUM, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.05
+
+# limma
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.05
 
 
 ###FDR 0.1###
@@ -362,6 +456,49 @@ Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_pa
 # immune panel, SERUM, Subtype
 Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01 --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes/results_ALL.rds --cutoff 0.1
 
+# limma
+# CNS panel, Without tears, No subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, Without tears, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, PLASMA
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, PLASMA, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, SERUM
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, SERUM, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, TEARS
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_01_limma --matrix_type TEARS --subtype FALSE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# CNS panel, TEARS, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/CNS_panel/With_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/CNS_panel/With_tears/04_Differential_Expression_FDR_01_limma --matrix_type TEARS --subtype TRUE --pvalues CNS_immune/Results/CNS_panel/With_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
+# immune panel, Without tears, No subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type CSF --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# immune panel, Without tears, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type CSF --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
+# immune panel, PLASMA
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type PLASMA --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# immune panel, PLASMA, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type PLASMA --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
+# immune panel, SERUM
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type SERUM --subtype FALSE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_limma/results_ALL.rds --cutoff 0.1
+
+# immune panel, SERUM, Subtype
+Rscript Script/04_differential_expression.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_01_limma --matrix_type SERUM --subtype TRUE --pvalues CNS_immune/Results/Immune_panel/Without_tears/02_Analysis_Groups_subtypes_limma/results_ALL.rds --cutoff 0.1
+
 ####### Signed p-value plot
 # CNS panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
 Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.05
@@ -400,6 +537,48 @@ Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_te
 
 # Immune panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
 Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01 --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+
+# limma
+####### Signed p-value plot
+# CNS panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p_limma --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.05
+
+# CNS panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p_limma --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+# CNS panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p_limma --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+# Immune panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p_limma --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.05
+
+# Immune panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p_limma --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+# Immune panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p_limma --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.05
+
+
+# padj 0.1
+# CNS panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p01_limma --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.1
+
+# CNS panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p01_limma --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# CNS panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p01_limma --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# Immune panel, Without tears, No subtype, CSF vs PLASMA, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01_limma --prefix1 CSF --prefix2 PLASMA --comparison ALS_CTRL --alpha 0.1
+
+# Immune panel, Without tears, No subtype, CSF vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_CSF_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01_limma --prefix1 CSF --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
+# Immune panel, Without tears, No subtype, PLASMA vs SERUM, ALS_CTRL
+Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_PLASMA_groups_covariate_adjusted.xlsx --input2 CNS_immune/Results/Immune_panel/Without_tears/04_Differential_Expression_FDR_005_limma/DE_subgroups_SERUM_groups_covariate_adjusted.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/05_Signed_p01_limma --prefix1 PLASMA --prefix2 SERUM --comparison ALS_CTRL --alpha 0.1
+
 
 # # CNS panel, Without tears, No subtype, CSF vs PLASMA, alpha_beta
 # Rscript Script/05_Signed_p.R --input1 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_CSF_subtypes_covariate_adjusted.xlsx --input2 CNS_immune/Results/CNS_panel/Without_tears/04_Differential_Expression_FDR_005/DE_subgroups_PLASMA_subtypes_covariate_adjusted.xlsx --output CNS_immune/Results/CNS_panel/Without_tears/05_Signed_p --prefix1 CSF --prefix2 PLASMA --comparison alpha_beta
