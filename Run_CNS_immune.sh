@@ -605,3 +605,11 @@ Rscript Script/06_Trajectory_progressionRate_combine_biofluid_GAM.R --input CNS_
 
 # also for immune
 Rscript Script/06_Trajectory_progressionRate_combine_biofluid_GAM.R --input CNS_immune/Results/Immune_panel/Without_tears/01_Data_Mining/protein_data_IDs.xlsx --output CNS_immune/Results/Immune_panel/Without_tears/06_Trajectory_progressionRate_combine_biofluid_withcorrelation --column_name progression_rate --fluids CSF,PLASMA,SERUM --n_row_clusters 4 --n_smooth_grid 40 --heatmap_width_cm 14 --pdf_width 10 --pdf_height 8 --progression_sd_k 3
+
+
+Rscript Script/10_NULISA_Clustering.R \
+  -i CNS_immune/Results \
+  -o CNS_immune/Results/Combined_CNS_Immune_panels/Without_tears/10_NULISA_Clustering \
+  -e 9 \
+  --disease TRUE \
+  --reverse TRUE
