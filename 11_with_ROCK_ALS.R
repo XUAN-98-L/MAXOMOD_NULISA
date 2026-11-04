@@ -390,6 +390,79 @@ if ("treatment" %in% colnames(main_tab)) {
   ggsave(file.path(output_dir, paste0("predicted_k2_by_treatment_", main_mode, ".pdf")), p_trt, width = 7, height = 5)
 }
 
+# (e) Clinical characteristics by predicted k2 (ensemble, main mode): counts and proportions
+clin_vars <- c(
+  "treatment" = "Treatment arm",
+  "sex" = "Sex",
+  "stratum" = "Onset (stratum)",
+  "C9orf72" = "C9orf72 status"
+)
+clin_vars <- clin_vars[names(clin_vars) %in% colnames(main_tab)]
+if (length(clin_vars) > 0L) {
+  clin_long <- bind_rows(lapply(names(clin_vars), function(v) {
+    data.frame(
+      variable = clin_vars[[v]],
+      k2 = main_tab$ensemble_k2,
+      category = ifelse(is.na(main_tab[[v]]), "missing", as.character(main_tab[[v]])),
+      stringsAsFactors = FALSE
+    )
+  }))
+  clin_long$category <- sub("^C9orf72_", "C9orf72 ", clin_long$category)
+
+  clin_tab <- clin_long %>%
+    count(variable, k2, category, name = "n") %>%
+    group_by(variable, k2) %>%
+    mutate(k2_total = sum(n), percent = 100 * n / k2_total) %>%
+    ungroup() %>%
+    arrange(variable, k2, category)
+
+  # Fisher's exact test per variable (predicted k2 x category, missing excluded)
+  clin_p <- clin_long %>%
+    filter(category != "missing") %>%
+    group_by(variable) %>%
+    summarise(
+      fisher_p = tryCatch(stats::fisher.test(table(k2, category))$p.value, error = function(e) NA_real_),
+      .groups = "drop"
+    )
+  clin_tab <- clin_tab %>% left_join(clin_p, by = "variable")
+  write.csv(clin_tab, file.path(output_dir, paste0("clinical_by_predicted_k2_", main_mode, ".csv")),
+            row.names = FALSE)
+
+  facet_lab <- setNames(
+    paste0(clin_p$variable, "\n(Fisher p = ", signif(clin_p$fisher_p, 2), ")"),
+    clin_p$variable
+  )
+  clin_tab$variable <- factor(clin_tab$variable, levels = unname(clin_vars))
+  clin_tab$k2_lab <- paste0(clin_tab$k2, "\n(n = ", clin_tab$k2_total, ")")
+  clin_tab$label <- paste0(clin_tab$category, "\n", clin_tab$n, " (", round(clin_tab$percent), "%)")
+
+  n_cat <- length(unique(clin_tab$category))
+  cat_cols <- setNames(
+    rep(c("#8DD3C7", "#FFFFB3", "#BEBADA", "#FB8072", "#80B1D3", "#FDB462",
+          "#B3DE69", "#FCCDE5", "#BC80BD", "#CCEBC5", "#FFED6F", "#D9D9D9"), length.out = n_cat),
+    sort(unique(clin_tab$category))
+  )
+  if ("missing" %in% names(cat_cols)) cat_cols[["missing"]] <- "gray85"
+
+  p_clin <- ggplot(clin_tab, aes(x = .data$k2_lab, y = .data$percent, fill = .data$category)) +
+    geom_col(width = 0.7, color = "white", linewidth = 0.3) +
+    geom_text(aes(label = .data$label), position = position_stack(vjust = 0.5),
+              size = 2.6, lineheight = 0.85) +
+    facet_wrap(~ variable, nrow = 1, scales = "free_x",
+               labeller = labeller(variable = facet_lab)) +
+    scale_fill_manual(values = cat_cols, guide = "none") +
+    scale_y_continuous(labels = function(x) paste0(x, "%"), expand = expansion(mult = c(0, 0.02))) +
+    labs(
+      title = "ROCK-ALS CSF: clinical characteristics by predicted k2",
+      subtitle = paste0("Ensemble prediction (harmonize = ", main_mode, "); labels = n (% within predicted group)"),
+      x = "Predicted k2", y = "Patients (%)"
+    ) +
+    theme_classic(base_size = 11) +
+    theme(strip.background = element_blank(), strip.text = element_text(face = "bold"))
+  ggsave(file.path(output_dir, paste0("clinical_by_predicted_k2_", main_mode, ".pdf")), p_clin,
+         width = 3 * length(clin_vars) + 1, height = 5.5)
+}
+
 # ============================================================
 # 6. PCA of ROCK-ALS CSF samples (as in 09_PCA_ML_Genes.R)
 #    Shape = ensemble-predicted k2 (main harmonisation mode).
@@ -568,4 +641,5 @@ message("  ROCK_ALS_CSF_predicted_k2_{none,center,standardize}.csv  (per-sample 
 message("  prediction_counts_by_model.csv, harmonization_agreement.csv, feature_shift_MAXOMOD_vs_ROCK.csv")
 message("  predicted_k2_by_treatment_", main_mode, ".csv/.pdf")
 message("  feature_distribution_MAXOMOD_vs_ROCK.pdf, predicted_P_beta_by_model_", main_mode, ".pdf")
+message("  clinical_by_predicted_k2_", main_mode, ".csv/.pdf  (clinical variables by predicted k2)")
 message("  PCA_predicted_k2_", main_mode, "/  (PCA of ML-selected and all proteins; shape = predicted k2)")
