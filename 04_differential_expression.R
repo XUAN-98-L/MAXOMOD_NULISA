@@ -50,13 +50,13 @@ add_log2fc <- function(df, subtype = FALSE) {
 }
 
 # 3. add DEx info in data
-add_DE_flag <- function(df, lfc, padj, up, down, alpha) {
+add_DE_flag <- function(df, lfc, p_col, up, down, alpha) {
   df %>%
     mutate(
-      log10_padj = -log10(.data[[padj]]),
+      log10_p = -log10(.data[[p_col]]),
       group = case_when(
-        .data[[padj]] < alpha & .data[[lfc]] > 0 ~ up,
-        .data[[padj]] < alpha & .data[[lfc]] < 0 ~ down,
+        .data[[p_col]] < alpha & .data[[lfc]] > 0 ~ up,
+        .data[[p_col]] < alpha & .data[[lfc]] < 0 ~ down,
         TRUE ~ "ns"
       )
     )
@@ -65,21 +65,21 @@ add_DE_flag <- function(df, lfc, padj, up, down, alpha) {
 # 4. Volcano plot
 volcano_plot <- function(
     df, log2fc, title,
-    fdr = 0.05,
+    p_cutoff = 0.05,
+    p_label = "p-value",
     colors,
     label_targets = NULL,
     add_x = 0,
     add_y = 0
 ) {
-  
-  
   to_label <- if (is.null(label_targets) || length(label_targets) == 0) {
     df %>% filter(group != "ns")
   } else {
     df %>% filter(group != "ns" | Target %in% label_targets)
   }
-  ggplot(df, aes_string(log2fc, "log10_padj")) +
-    geom_point(aes(color = group, size = log10_padj)) +
+  y_lab <- bquote(-log[10] * "(" * .(p_label) * ")")
+  ggplot(df, aes_string(log2fc, "log10_p")) +
+    geom_point(aes(color = group, size = log10_p)) +
     geom_text_repel(
       data = to_label,
       aes(label = Target),
@@ -87,31 +87,74 @@ volcano_plot <- function(
       size = 5,
       min.segment.length = 0
     ) +
-    geom_hline(yintercept = -log10(fdr), linetype = "dashed", color = "darkgrey") +
+    geom_hline(yintercept = -log10(p_cutoff), linetype = "dashed", color = "darkgrey") +
     geom_vline(xintercept = 0, linetype = "dashed", color = "darkgrey") +
     scale_color_manual(values = colors) +
     annotate(
       "text",
       x = add_x,
-      y = -log10(fdr) + add_y,
-      label = paste0("FDR = ", fdr * 100, "%"),
+      y = -log10(p_cutoff) + add_y,
+      label = paste0(p_label, " = ", p_cutoff),
       color = "darkgrey",
       size = 5
     ) +
     theme_minimal() +
     ggtitle(title) +
     scale_size_continuous(range = c(2, 7)) +
-    ylab(expression("-log"[10]*"(adjusted p-value)")) +
-    xlab(expression("log"[2]*"(fold-change)")) + 
-    labs(size = expression("-log"[10]*"(adjusted p-value)")) +
+    ylab(y_lab) +
+    xlab(expression("log"[2]*"(fold-change)")) +
+    labs(size = y_lab) +
     theme(
       axis.title.x = element_blank(),
-      text = element_text(size = 15),               # Base font size for everything
-      axis.title = element_text(size = 18),         # Axis titles
-      axis.text = element_text(size = 16),          # Axis tick labels
-      plot.title = element_text(size = 18, hjust = 0.5,face = "bold"),
+      text = element_text(size = 15),
+      axis.title = element_text(size = 18),
+      axis.text = element_text(size = 16),
+      plot.title = element_text(size = 18, hjust = 0.5, face = "bold"),
       legend.title = element_text(size = 16),
       legend.text = element_text(size = 15))
+}
+
+prepare_volcano_df <- function(df, subtype, lfc_col, pvalue_col, padj_col, up, down, cutoff, use_fdr = FALSE) {
+  p_col <- if (use_fdr) padj_col else pvalue_col
+  if (subtype) {
+    df %>%
+      select(Target, UniProtID, all_of(c(lfc_col, pvalue_col, padj_col))) %>%
+      add_DE_flag(lfc = lfc_col, p_col = p_col, up = up, down = down, alpha = cutoff)
+  } else {
+    df %>%
+      dplyr::select(Target, UniProtID, all_of(c(lfc_col, pvalue_col, padj_col))) %>%
+      add_DE_flag(lfc = lfc_col, p_col = p_col, up = up, down = down, alpha = cutoff)
+  }
+}
+
+save_volcano <- function(df, output_dir, matrix_type, subtype, suffix, title_suffix, colors, label_genes, cutoff, use_fdr) {
+  lfc_col <- paste0("log2FC_", ifelse(subtype, "alpha_beta", "ALS_CTR"))
+  pvalue_col <- ifelse(subtype, "pvalue_alpha_beta", "pvalue_ALS_CTRL")
+  padj_col <- ifelse(subtype, "padj_alpha_beta", "padj_ALS_CTRL")
+  up <- ifelse(subtype, "alpha", "ALS")
+  down <- ifelse(subtype, "beta", "CTR")
+  p_label <- if (use_fdr) "FDR-adjusted p-value" else "raw p-value"
+
+  plot_df <- prepare_volcano_df(df, subtype, lfc_col, pvalue_col, padj_col, up, down, cutoff, use_fdr)
+  comparison <- ifelse(subtype, "alpha vs beta", "ALS vs CTR")
+  p <- volcano_plot(
+    plot_df,
+    lfc_col,
+    title = paste0(comparison, " in ", matrix_type, title_suffix, " (", p_label, ")"),
+    p_cutoff = cutoff,
+    p_label = p_label,
+    colors = colors,
+    label_targets = label_genes,
+    add_x = 2,
+    add_y = -0.6
+  )
+  out_file <- paste0(
+    output_dir, "/volcano_plot_", matrix_type, "_",
+    ifelse(subtype, "subtypes", "groups"), suffix,
+    ifelse(use_fdr, "_FDR", "_raw_p"), ".pdf"
+  )
+  ggsave(out_file, p, width = 10, height = 7)
+  invisible(out_file)
 }
 
 #=================Parse command line arguments=================
@@ -240,43 +283,25 @@ DE_subgroups_adjusted = DE_subgroups_adjusted %>%
 
 writexl::write_xlsx(DE_subgroups_adjusted,paste0(output_dir, "/DE_subgroups_", matrix_type, "_", ifelse(subtype, "subtypes", "groups"), "_covariate_adjusted.xlsx"))
 
-####### VOLCANO PLOTS 
-if (subtype) {
-  DE_subgroups = DE_subgroups %>%
-    select(Target,UniProtID,log2FC_alpha_beta,pvalue_alpha_beta,padj_alpha_beta) %>%
-    add_DE_flag(lfc = "log2FC_alpha_beta",padj = "padj_alpha_beta",up = "alpha",down = "beta",alpha = cutoff)
-
-  DE_subgroups_adjusted = DE_subgroups_adjusted %>%
-    select(Target,UniProtID,log2FC_alpha_beta,pvalue_alpha_beta,padj_alpha_beta) %>%
-    add_DE_flag(lfc = "log2FC_alpha_beta",padj = "padj_alpha_beta",up = "alpha",down = "beta",alpha = cutoff)
+####### VOLCANO PLOTS
+colors <- if (subtype) {
+  c(alpha = "#FC8D62", beta = "#8DA0CB", ns = "lightgrey")
 } else {
-  DE_subgroups = DE_subgroups %>%
-    dplyr::select(Target,UniProtID,log2FC_ALS_CTR,pvalue_ALS_CTRL,padj_ALS_CTRL) %>%
-    add_DE_flag(lfc = "log2FC_ALS_CTR",padj = "padj_ALS_CTRL",up = "ALS",down = "CTR",alpha = cutoff)
-
-  DE_subgroups_adjusted = DE_subgroups_adjusted %>%
-    dplyr::select(Target,UniProtID,log2FC_ALS_CTR,pvalue_ALS_CTRL,padj_ALS_CTRL) %>%
-    add_DE_flag(lfc = "log2FC_ALS_CTR",padj = "padj_ALS_CTRL",up = "ALS",down = "CTR",alpha = cutoff)
+  c(ALS = "#D73027", CTR = "black", ns = "lightgrey")
 }
 
-# set colors for the volcano plot
-colors = case_when(
-  subtype ~ c('alpha' = "#FC8D62", 'beta' = "#8DA0CB", 'ns' = 'lightgrey'),
-  TRUE ~ c('ALS' = "#D73027", 'CTR' = "black", 'ns' = 'lightgrey')
+# Unadjusted: raw p-value and FDR-adjusted p-value
+save_volcano(DE_subgroups, output_dir, matrix_type, subtype, "", "", colors, label_genes, cutoff, use_fdr = FALSE)
+save_volcano(DE_subgroups, output_dir, matrix_type, subtype, "", "", colors, label_genes, cutoff, use_fdr = TRUE)
+
+# Covariate adjusted (age, sex): raw p-value and FDR-adjusted p-value
+save_volcano(
+  DE_subgroups_adjusted, output_dir, matrix_type, subtype,
+  "_covariate_adjusted", " (covariate adjusted)",
+  colors, label_genes, cutoff, use_fdr = FALSE
 )
-
-volcano = volcano_plot(DE_subgroups, paste0("log2FC_", ifelse(subtype, "alpha_beta", "ALS_CTR")),
-                                      title = paste0(ifelse(subtype, "alpha vs beta", "ALS vs CTR"), " in ", matrix_type),
-                                      colors = colors,
-                                      label_targets = label_genes,
-                                      add_x = 2, add_y = -0.6, fdr = cutoff)
-
-ggsave(paste0(output_dir, "/volcano_plot_", matrix_type, "_", ifelse(subtype, "subtypes", "groups"), ".pdf"), volcano, width = 10, height = 7)
-
-volcano_adjusted = volcano_plot(DE_subgroups_adjusted, paste0("log2FC_", ifelse(subtype, "alpha_beta", "ALS_CTR")),
-                                      title = paste0(ifelse(subtype, "alpha vs beta", "ALS vs CTR"), " in ", matrix_type, " (covariate adjusted)"),
-                                      colors = colors,
-                                      label_targets = label_genes,
-                                      add_x = 2, add_y = -0.6, fdr = cutoff)
-
-ggsave(paste0(output_dir, "/volcano_plot_", matrix_type, "_", ifelse(subtype, "subtypes", "groups"), "_covariate_adjusted.pdf"), volcano_adjusted, width = 10, height = 7)
+save_volcano(
+  DE_subgroups_adjusted, output_dir, matrix_type, subtype,
+  "_covariate_adjusted", " (covariate adjusted)",
+  colors, label_genes, cutoff, use_fdr = TRUE
+)

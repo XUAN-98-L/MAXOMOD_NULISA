@@ -1,9 +1,19 @@
-# PCA + PLS on ML-selected NULISA proteins; MS top5 cross-platform PLS
+# PCA on ML-selected NULISA proteins (from 08_Clustering_Feature_Selection.R)
 #
-# Rscript Script/09_PCA_ML_Genes.R \
-#   -i CNS_immune/Results \
-#   -f .../08_Clustering_Feature_Selection/selected_features.txt \
-#   -o .../09_PCA_ML_Genes
+# Works with 08_Clustering_Feature_Selection.R (--panel cns | immune | both).
+# With the same -i and --panel as used for 08, the selected-feature file and
+# output folder are found automatically:
+#   --panel both   -> <input>/Combined_CNS_Immune_panels/Without_tears/...
+#   --panel cns    -> <input>/CNS_panel/Without_tears/...
+#   --panel immune -> <input>/Immune_panel/Without_tears/...
+#   reading  .../08_Clustering_Feature_Selection[_<Matrix>]/selected_features.txt
+#   writing  .../09_PCA_ML_Genes[_<Matrix>]/
+# --matrix CSF | Serum | Plasma (same as 08; CSF folders have no suffix).
+#
+# Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns
+# Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix Serum
+# Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel both
+# (-f / -o override the automatic paths)
 
 suppressMessages(library(optparse))
 suppressMessages(library(readxl))
@@ -16,7 +26,6 @@ if (!requireNamespace("ggrepel", quietly = TRUE)) {
   message("Note: install 'ggrepel' for non-overlapping biplot labels.")
 }
 
-k2_colors <- setNames(brewer.pal(8, "Set2")[c(2, 3)], c("alpha", "beta"))
 
 label_repel_geom <- function(data, mapping, ...) {
   if (requireNamespace("ggrepel", quietly = TRUE)) {
@@ -42,115 +51,162 @@ label_repel_geom <- function(data, mapping, ...) {
 }
 
 option_list <- list(
-  make_option(c("-i", "--input"), type = "character", default = "CNS_immune/Results"),
   make_option(
-    c("-f", "--features"),
-    type = "character",
-    default = "CNS_immune/Results/Combined_CNS_Immune_panels/Without_tears/08_Clustering_Feature_Selection/selected_features.txt"
+    c("-i", "--input"), type = "character", default = "CNS_immune/Results",
+    help = paste(
+      "Panel base directory (as for 08), OR comma-separated paths.",
+      "--panel both: cns_npq.xlsx,immune_npq.xlsx,metadata.xlsx;",
+      "--panel cns/immune: npq.xlsx,metadata.xlsx"
+    )
   ),
   make_option(
-    c("-o", "--output"),
-    type = "character",
-    default = "CNS_immune/Results/Combined_CNS_Immune_panels/Without_tears/09_PCA_ML_Genes"
+    c("--panel"), type = "character", default = "both",
+    help = "Panel(s) used in 08: 'cns', 'immune' or 'both' [default: %default]"
+  ),
+  make_option(
+    c("--matrix"), type = "character", default = "CSF",
+    help = "Sample matrix used in 08: 'CSF', 'Serum' or 'Plasma' (case-insensitive) [default: %default]"
+  ),
+  make_option(
+    c("-f", "--features"), type = "character", default = NULL,
+    help = "selected_features.txt from 08 [default: derived from -i and --panel]"
+  ),
+  make_option(
+    c("-o", "--output"), type = "character", default = NULL,
+    help = "Output directory [default: derived from -i and --panel]"
   ),
   make_option(c("--require_k2"), type = "logical", default = TRUE),
-  make_option(c("--pr_breaks"), type = "character", default = "0,0.5,1,2,4,Inf"),
-  make_option(
-    c("--MS_expression"),
-    type = "character",
-    default = "/Users/xliu2942/Documents/Projects/MAXOMOD/14324_0_source_data_169635_t9mdsb/Supp table 12 - intensity_imputed_log2transf_norm_DC.csv"
-  ),
-  make_option(c("--ms_protein_col"), type = "character", default = "Protein"),
-  make_option(c("--ms_top5"), type = "character", default = "PARK7,PTPRS,ATRN,CNTN1,PCSK1N"),
-  make_option(c("--pls_ncomp"), type = "integer", default = 5L)
+  make_option(c("--pr_breaks"), type = "character", default = "0,0.5,1,2,4,Inf")
 )
 
 opt <- parse_args(OptionParser(option_list = option_list))
 
-parse_panel_paths <- function(input_arg) {
+panel_choice <- tolower(opt$panel)
+if (!panel_choice %in% c("cns", "immune", "both")) {
+  stop("--panel must be 'cns', 'immune' or 'both'.")
+}
+panel_label <- switch(panel_choice, cns = "CNS", immune = "Immune", both = "CNS + Immune")
+
+# Sample matrix: NPQ files use CSF/SERUM/PLASMA, metadata uses CSF/Serum/Plasma
+matrix_key <- toupper(trimws(opt$matrix))
+if (!matrix_key %in% c("CSF", "SERUM", "PLASMA")) {
+  stop("--matrix must be 'CSF', 'Serum' or 'Plasma'.")
+}
+matrix_meta <- switch(matrix_key, CSF = "CSF", SERUM = "Serum", PLASMA = "Plasma")
+matrix_suffix <- if (matrix_meta == "CSF") "" else paste0("_", matrix_meta)   # folder suffix, as in 08
+
+# Same logic as 08_Clustering_Feature_Selection.R
+parse_panel_paths <- function(input_arg, panel_choice) {
+  subdir <- "Without_tears"
+  panel_dir <- c(CNS = "CNS_panel", Immune = "Immune_panel")
+  prefixes <- switch(panel_choice, cns = "CNS", immune = "Immune", both = c("CNS", "Immune"))
+
   if (grepl(",", input_arg, fixed = TRUE)) {
     parts <- trimws(strsplit(input_arg, ",", fixed = TRUE)[[1]])
-    if (length(parts) != 3L) {
-      stop("--input must be a panel base directory or three comma-separated file paths.")
+    if (panel_choice == "both") {
+      if (length(parts) != 3L) {
+        stop("--panel both with file paths needs: cns_npq.xlsx,immune_npq.xlsx,metadata.xlsx")
+      }
+      return(list(npq = list(CNS = parts[1], Immune = parts[2]), metadata = parts[3]))
     }
-    list(cns = parts[1], immune = parts[2], metadata = parts[3])
-  } else {
-    subdir <- "Without_tears"
-    list(
-      cns = file.path(input_arg, "CNS_panel", subdir, "00_Initialization", "npq_counts.xlsx"),
-      immune = file.path(input_arg, "Immune_panel", subdir, "00_Initialization", "npq_counts.xlsx"),
-      metadata = file.path(input_arg, "CNS_panel", subdir, "00_Initialization", "all_participants_IDs.xlsx")
-    )
+    if (length(parts) == 2L) {
+      return(list(npq = setNames(list(parts[1]), prefixes), metadata = parts[2]))
+    }
+    if (length(parts) == 3L) {
+      npq_path <- if (panel_choice == "cns") parts[1] else parts[2]
+      return(list(npq = setNames(list(npq_path), prefixes), metadata = parts[3]))
+    }
+    stop("--panel ", panel_choice, " with file paths needs: npq.xlsx,metadata.xlsx")
   }
+
+  npq <- lapply(prefixes, function(p) {
+    file.path(input_arg, panel_dir[[p]], subdir, "00_Initialization", "npq_counts.xlsx")
+  })
+  names(npq) <- prefixes
+  metadata <- file.path(input_arg, panel_dir[[prefixes[1]]], subdir, "00_Initialization",
+                        "all_participants_IDs.xlsx")
+  list(npq = npq, metadata = metadata)
 }
 
-read_ms_matrix <- function(path, protein_col = "Protein") {
-  if (!file.exists(path)) {
-    stop("MS expression file not found: ", path)
-  }
-  ms_df <- utils::read.csv(path, check.names = FALSE, stringsAsFactors = FALSE)
-  if (!protein_col %in% colnames(ms_df)) {
-    stop("MS file must contain column '", protein_col, "'.")
-  }
-  prot <- as.character(ms_df[[protein_col]])
-  mat <- ms_df[, setdiff(colnames(ms_df), protein_col), drop = FALSE]
-  mat <- as.data.frame(lapply(mat, function(x) suppressWarnings(as.numeric(x))))
-  rownames(mat) <- prot
-  mat
+# Panel result folder used by 08 (and now 09)
+panel_result_dir <- function(input_arg, panel_choice) {
+  sub_dir <- switch(panel_choice,
+    both = "Combined_CNS_Immune_panels",
+    cns = "CNS_panel",
+    immune = "Immune_panel"
+  )
+  file.path(input_arg, sub_dir, "Without_tears")
 }
 
 npq_to_wide <- function(npq_path, panel_prefix) {
   read_excel(npq_path) %>%
-    filter(SampleMatrixType == "CSF", SampleType == "Sample") %>%
+    filter(toupper(SampleMatrixType) == matrix_key, SampleType == "Sample") %>%
     mutate(Feature = paste0(panel_prefix, "_", Target)) %>%
     select(SampleName, Feature, NPQ) %>%
     pivot_wider(names_from = Feature, values_from = NPQ) %>%
     as.data.frame()
 }
 
-panel_paths <- parse_panel_paths(opt$input)
+panel_paths <- parse_panel_paths(opt$input, panel_choice)
+is_file_input <- grepl(",", opt$input, fixed = TRUE)
+
+features_path <- opt$features
+if (is.null(features_path) || !nzchar(features_path)) {
+  if (is_file_input) stop("With comma-separated --input, please give -f (selected_features.txt from 08).")
+  features_path <- file.path(panel_result_dir(opt$input, panel_choice),
+                             paste0("08_Clustering_Feature_Selection", matrix_suffix), "selected_features.txt")
+}
+if (!file.exists(features_path)) {
+  stop("Selected-feature file not found: ", features_path,
+       "\nRun 08_Clustering_Feature_Selection.R with the same -i/--panel/--matrix first, or give -f.")
+}
+
 output_dir <- opt$output
+if (is.null(output_dir) || !nzchar(output_dir)) {
+  output_dir <- if (is_file_input) {
+    paste0("09_PCA_ML_Genes", matrix_suffix, "_", panel_choice)
+  } else {
+    file.path(panel_result_dir(opt$input, panel_choice), paste0("09_PCA_ML_Genes", matrix_suffix))
+  }
+}
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
-selected_features <- trimws(readLines(opt$features, warn = FALSE))
+message("Panel(s): ", panel_label, "; matrix: ", matrix_meta)
+for (p in names(panel_paths$npq)) message("Input (", p, " NPQ): ", panel_paths$npq[[p]])
+message("Metadata: ", panel_paths$metadata)
+message("Selected features: ", features_path)
+message("Output: ", output_dir)
+
+selected_features <- trimws(readLines(features_path, warn = FALSE))
 selected_features <- selected_features[nzchar(selected_features)]
 if (length(selected_features) < 2L) {
   stop("Need at least 2 features for PCA.")
 }
 
-ms_top5 <- trimws(strsplit(opt$ms_top5, ",", fixed = TRUE)[[1]])
-ms_top5 <- ms_top5[nzchar(ms_top5)]
-if (length(ms_top5) < 2L) {
-  stop("--ms_top5 must contain at least 2 comma-separated protein names.")
-}
-
-message("Loading CNS + Immune NPQ (CSF samples)...")
-npq_wide_cns <- npq_to_wide(panel_paths$cns, "CNS")
-npq_wide_immune <- npq_to_wide(panel_paths$immune, "Immune")
-common_samples <- intersect(npq_wide_cns$SampleName, npq_wide_immune$SampleName)
-
-npq_wide <- npq_wide_cns %>%
-  filter(.data$SampleName %in% common_samples) %>%
-  inner_join(
-    npq_wide_immune %>% filter(.data$SampleName %in% common_samples),
-    by = "SampleName"
-  )
+message("Loading ", panel_label, " NPQ (", matrix_meta, " samples)...")
+wide_list <- lapply(names(panel_paths$npq), function(p) npq_to_wide(panel_paths$npq[[p]], p))
+common_samples <- Reduce(intersect, lapply(wide_list, function(w) w$SampleName))
+npq_wide <- Reduce(
+  function(a, b) inner_join(a, b, by = "SampleName"),
+  lapply(wide_list, function(w) w[w$SampleName %in% common_samples, , drop = FALSE])
+)
 rownames(npq_wide) <- npq_wide$SampleName
 npq_wide$SampleName <- NULL
 
 missing_feat <- setdiff(selected_features, colnames(npq_wide))
 if (length(missing_feat) > 0L) {
-  stop("Selected features not in combined NPQ matrix: ", paste(missing_feat, collapse = ", "))
+  stop("Selected features not in the ", panel_label, " NPQ matrix: ", paste(missing_feat, collapse = ", "),
+       "\nCheck that --panel matches the 08 run that produced ", features_path)
 }
 
 meta <- read_excel(panel_paths$metadata) %>%
-  filter(Material == "CSF") %>%
+  filter(toupper(Material) == matrix_key) %>%
   mutate(
     progression_rate = suppressWarnings(as.numeric(progression_rate)),
     k2 = as.character(k2),
     across(any_of(c("slow_vital_capacity", "Nfl")), ~ suppressWarnings(as.numeric(.x)))
   ) %>%
-  select(Tube_ID, CSF_ID, k2, progression_rate, any_of(c("slow_vital_capacity", "Nfl"))) %>%
+  select(Tube_ID, k2, progression_rate, any_of(c("slow_vital_capacity", "Nfl"))) %>%
   filter(Tube_ID %in% rownames(npq_wide))
 
 if (isTRUE(opt$require_k2)) {
@@ -169,69 +225,6 @@ expr <- expr[, var_ok, drop = FALSE]
 if (ncol(expr) < 2L || nrow(expr) < 3L) {
   stop("Insufficient samples or features after filtering.")
 }
-
-# ---- PLS: MS top5 vs NULISA (alignment plot + loadings only) ----
-message("Running PLS (MS top5 vs NULISA ML features)...")
-if (!requireNamespace("mixOmics", quietly = TRUE)) {
-  stop("Package 'mixOmics' is required for PLS.")
-}
-suppressMessages(library(mixOmics))
-
-ms_mat <- read_ms_matrix(opt$MS_expression, protein_col = opt$ms_protein_col)
-ms_present <- intersect(ms_top5, rownames(ms_mat))
-nulisa_present <- intersect(selected_features, colnames(expr))
-if (length(ms_present) < 2L || length(nulisa_present) < 2L) {
-  stop("PLS needs >=2 MS and >=2 NULISA proteins present in data.")
-}
-
-csf_ids_vec <- as.character(meta$CSF_ID)
-keep <- which(!is.na(csf_ids_vec) & csf_ids_vec %in% colnames(ms_mat))
-X_pls <- t(ms_mat[ms_present, csf_ids_vec[keep], drop = FALSE])
-Y_pls <- as.matrix(expr[keep, nulisa_present, drop = FALSE])
-ok <- complete.cases(cbind(as.data.frame(X_pls), as.data.frame(Y_pls)))
-X_pls <- X_pls[ok, , drop = FALSE]
-Y_pls <- Y_pls[ok, , drop = FALSE]
-meta_pls <- meta[keep, , drop = FALSE][ok, , drop = FALSE]
-if (nrow(X_pls) < 3L) {
-  stop("Fewer than 3 complete paired samples for PLS.")
-}
-
-ncomp_use <- min(opt$pls_ncomp, nrow(X_pls) - 1L, ncol(X_pls), ncol(Y_pls))
-res_pls <- mixOmics::spls(X = X_pls, Y = Y_pls, ncomp = ncomp_use)
-
-load_X <- as.data.frame(res_pls$loadings$X)
-load_Y <- as.data.frame(res_pls$loadings$Y)
-load_X$protein <- rownames(load_X)
-load_Y$protein <- rownames(load_Y)
-write.csv(load_X, file.path(output_dir, "pls_loadings_X_MS_top5.csv"), row.names = FALSE)
-write.csv(load_Y, file.path(output_dir, "pls_loadings_Y_NULISA_top6.csv"), row.names = FALSE)
-
-scoresX <- as.data.frame(res_pls$variates$X)
-scoresY <- as.data.frame(res_pls$variates$Y)
-pls_scores <- data.frame(
-  k2 = factor(meta_pls$k2, levels = c("alpha", "beta")),
-  X_comp1 = scoresX[, 1],
-  Y_comp1 = scoresY[, 1],
-  stringsAsFactors = FALSE
-)
-ct <- suppressWarnings(stats::cor.test(pls_scores$X_comp1, pls_scores$Y_comp1, method = "pearson"))
-
-p_pls <- ggplot(pls_scores, aes(x = .data$X_comp1, y = .data$Y_comp1, color = .data$k2)) +
-  geom_point(size = 3.5, alpha = 0.9, stroke = 0.9) +
-  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8, color = "gray20") +
-  scale_color_manual(values = k2_colors, name = "k2") +
-  theme_classic(base_size = 13) +
-  labs(
-    title = "PLS component alignment (comp1): MS top5 vs NULISA",
-    subtitle = paste0(
-      "X_comp1 vs Y_comp1; r = ", sprintf("%.3f", ct$estimate),
-      ", p = ", signif(ct$p.value, 3), ", n = ", nrow(pls_scores)
-    ),
-    x = "X_comp1",
-    y = "Y_comp1"
-  )
-ggsave(file.path(output_dir, "pls_component_alignment_comp1.pdf"), p_pls, width = 7.2, height = 6)
-ggsave(file.path(output_dir, "pls_component_alignment_comp1.png"), p_pls, width = 7.2, height = 6, dpi = 300)
 
 # ---- PCA ----
 message("PCA: n = ", nrow(expr), ", p = ", ncol(expr))
@@ -278,7 +271,7 @@ p_prog <- ggplot(plot_df, aes(x = .data$PC1, y = .data$PC2, color = .data$progre
   scale_color_manual(values = pr_palette, name = "progression_rate\n(binned)", drop = FALSE) +
   scale_k2_shape +
   labs(
-    title = "PCA: ML-selected proteins (CNS + Immune CSF NPQ)",
+    title = paste0("PCA: ML-selected proteins (", panel_label, ", ", matrix_meta, " NPQ, ", ncol(expr), " proteins)"),
     x = paste0("PC1 (", round(var_expl[1], 1), "%)"),
     y = paste0("PC2 (", round(var_expl[2], 1), "%)")
   ) +
@@ -293,7 +286,7 @@ if ("slow_vital_capacity" %in% names(scores)) {
       viridis::scale_color_viridis(option = "C", name = "slow_vital_capacity") +
       scale_k2_shape +
       labs(
-        title = "PCA: ML-selected proteins (CNS+Immune)",
+        title = paste0("PCA: ML-selected proteins (", panel_label, ", ", matrix_meta, ", ", ncol(expr), " proteins)"),
         x = paste0("PC1 (", round(var_expl[1], 1), "%)"),
         y = paste0("PC2 (", round(var_expl[2], 1), "%)")
       ) +
@@ -310,7 +303,7 @@ if ("Nfl" %in% names(scores)) {
       viridis::scale_color_viridis(option = "C", name = "Nfl") +
       scale_k2_shape +
       labs(
-        title = "PCA: ML-selected proteins (CNS+Immune)",
+        title = paste0("PCA: ML-selected proteins (", panel_label, ", ", matrix_meta, ", ", ncol(expr), " proteins)"),
         x = paste0("PC1 (", round(var_expl[1], 1), "%)"),
         y = paste0("PC2 (", round(var_expl[2], 1), "%)")
       ) +
@@ -325,7 +318,14 @@ var_dir <- var_cor
 var_dir[var_r > 0, ] <- var_cor[var_r > 0, , drop = FALSE] / var_r[var_r > 0]
 var_dir[var_r == 0, ] <- 0
 
-score_span <- max(abs(c(plot_df$PC1, plot_df$PC2)), na.rm = TRUE)
+# Biplot is drawn on the Nfl plot (Nfl colour; samples with missing Nfl dropped).
+# Falls back to progression_rate colouring if Nfl is not in the metadata.
+use_nfl_biplot <- "Nfl" %in% names(scores) && sum(!is.na(scores$Nfl)) >= 3L
+bi_df <- if (use_nfl_biplot) scores %>% filter(!is.na(Nfl)) else plot_df
+message("Biplot: coloured by ", if (use_nfl_biplot) "Nfl" else "progression_rate (Nfl not available)",
+        ", n = ", nrow(bi_df), " of ", nrow(scores), " samples")
+
+score_span <- max(abs(c(bi_df$PC1, bi_df$PC2)), na.rm = TRUE)
 arrow_len <- 0.38 * score_span
 gene_arrows <- data.frame(
   feature_label = ifelse(
@@ -340,7 +340,15 @@ gene_arrows <- data.frame(
   stringsAsFactors = FALSE
 )
 
-p_biplot <- ggplot(plot_df, aes(x = .data$PC1, y = .data$PC2, color = .data$progression_rate_bin, shape = .data$k2)) +
+bi_color <- if (use_nfl_biplot) {
+  list(aes(color = .data$Nfl), viridis::scale_color_viridis(option = "C", name = "Nfl"))
+} else {
+  list(aes(color = .data$progression_rate_bin),
+       scale_color_manual(values = pr_palette, name = "progression_rate\n(binned)", drop = FALSE))
+}
+
+p_biplot <- ggplot(bi_df, aes(x = .data$PC1, y = .data$PC2, shape = .data$k2)) +
+  bi_color[[1]] +
   geom_point(size = 3.2, alpha = 0.85, stroke = 0.85) +
   geom_segment(
     data = gene_arrows,
@@ -351,18 +359,120 @@ p_biplot <- ggplot(plot_df, aes(x = .data$PC1, y = .data$PC2, color = .data$prog
     linewidth = 0.65
   ) +
   label_repel_geom(gene_arrows, aes(x = .data$label_x, y = .data$label_y, label = .data$feature_label)) +
-  scale_color_manual(values = pr_palette, name = "progression_rate\n(binned)", drop = FALSE) +
+  bi_color[[2]] +
   scale_k2_shape +
   labs(
-    title = "PCA biplot: samples and protein directions",
+    title = paste0("PCA biplot: samples and protein directions (", panel_label, ", ", matrix_meta, ", n = ", nrow(bi_df), ")"),
     x = paste0("PC1 (", round(var_expl[1], 1), "%)"),
     y = paste0("PC2 (", round(var_expl[2], 1), "%)")
   ) +
   theme_classic(base_size = 12)
 ggsave(file.path(output_dir, "pca_biplot_gene_contribution.pdf"), p_biplot, width = 9.5, height = 6.5)
 
+# ---- PCA on ALL proteins of the panel(s) (same samples as above) ----
+# Proteins with any missing value or zero variance in these samples are dropped.
+expr_all <- npq_wide[rownames(expr), , drop = FALSE]
+expr_all <- expr_all[, colSums(is.na(expr_all)) == 0, drop = FALSE]
+sd_all <- apply(expr_all, 2, stats::sd)
+expr_all <- expr_all[, !is.na(sd_all) & sd_all > 0, drop = FALSE]
+message("PCA (all proteins): n = ", nrow(expr_all), ", p = ", ncol(expr_all),
+        " (of ", ncol(npq_wide), " proteins in the ", panel_label, " panel)")
+
+pca_all <- stats::prcomp(expr_all, center = TRUE, scale. = TRUE)
+var_expl_all <- summary(pca_all)$importance[2, 1:2] * 100
+scores_all <- scores
+scores_all$PC1 <- pca_all$x[, 1]
+scores_all$PC2 <- pca_all$x[, 2]
+
+all_title <- paste0("PCA: all proteins (", panel_label, ", ", matrix_meta, ", ",
+                    ncol(expr_all), " proteins)")
+all_axes <- labs(
+  x = paste0("PC1 (", round(var_expl_all[1], 1), "%)"),
+  y = paste0("PC2 (", round(var_expl_all[2], 1), "%)")
+)
+
+# progression_rate (binned)
+df_all_prog <- scores_all %>% filter(!is.na(progression_rate_bin))
+p_all_prog <- ggplot(df_all_prog, aes(x = .data$PC1, y = .data$PC2,
+                                      color = .data$progression_rate_bin, shape = .data$k2)) +
+  geom_point(size = 3.8, alpha = 0.92, stroke = 0.9) +
+  scale_color_manual(values = pr_palette, name = "progression_rate\n(binned)", drop = FALSE) +
+  scale_k2_shape +
+  labs(title = all_title, subtitle = paste0("n = ", nrow(df_all_prog))) +
+  all_axes +
+  theme_classic(base_size = 13)
+ggsave(file.path(output_dir, "pca_all_proteins_progression_k2.pdf"), p_all_prog, width = 8, height = 6)
+
+# continuous variables: slow_vital_capacity, Nfl
+for (v in c("slow_vital_capacity", "Nfl")) {
+  if (!v %in% names(scores_all)) next
+  df_v <- scores_all[!is.na(scores_all[[v]]), , drop = FALSE]
+  if (nrow(df_v) < 3L) next
+  p_v <- ggplot(df_v, aes(x = .data$PC1, y = .data$PC2, color = .data[[v]], shape = .data$k2)) +
+    geom_point(size = 3.6, alpha = 0.9, stroke = 0.9) +
+    viridis::scale_color_viridis(option = "C", name = v) +
+    scale_k2_shape +
+    labs(title = all_title, subtitle = paste0("n = ", nrow(df_v))) +
+    all_axes +
+    theme_classic(base_size = 13)
+  ggsave(file.path(output_dir, paste0("pca_all_proteins_", v, "_k2.pdf")), p_v, width = 8, height = 6)
+}
+
+# ---- Biplot on the all-protein PCA (Nfl plot): directions of the ML-selected proteins ----
+# Arrow = correlation of each ML-selected protein with all-protein PC1/PC2.
+# Arrows are NOT normalised to equal length: a short arrow means the protein is only
+# weakly aligned with the PC1/PC2 plane of the full panel.
+ml_in_all <- intersect(colnames(expr), colnames(expr_all))
+if ("Nfl" %in% names(scores_all) && length(ml_in_all) >= 1L) {
+  bi_all_df <- scores_all %>% filter(!is.na(Nfl))
+  if (nrow(bi_all_df) >= 3L) {
+    cor_all <- stats::cor(expr_all[, ml_in_all, drop = FALSE], pca_all$x[, 1:2, drop = FALSE])
+    len_all <- 0.9 * max(abs(c(bi_all_df$PC1, bi_all_df$PC2)), na.rm = TRUE)
+    arrows_all <- data.frame(
+      feature_label = ifelse(
+        grepl("^CNS_", ml_in_all),
+        paste0("CNS:", sub("^CNS_", "", ml_in_all)),
+        paste0("Imm:", sub("^Immune_", "", ml_in_all))
+      ),
+      PC1 = cor_all[, 1] * len_all,
+      PC2 = cor_all[, 2] * len_all,
+      label_x = cor_all[, 1] * len_all * 1.08,
+      label_y = cor_all[, 2] * len_all * 1.08,
+      stringsAsFactors = FALSE
+    )
+    write.csv(
+      data.frame(Feature = ml_in_all, cor_PC1 = cor_all[, 1], cor_PC2 = cor_all[, 2],
+                 length = sqrt(rowSums(cor_all^2))),
+      file.path(output_dir, "pca_all_proteins_ML_protein_correlations.csv"), row.names = FALSE
+    )
+
+    p_all_bi <- ggplot(bi_all_df, aes(x = .data$PC1, y = .data$PC2, color = .data$Nfl, shape = .data$k2)) +
+      geom_point(size = 3.6, alpha = 0.9, stroke = 0.9) +
+      geom_segment(
+        data = arrows_all,
+        aes(x = 0, y = 0, xend = .data$PC1, yend = .data$PC2),
+        inherit.aes = FALSE,
+        arrow = grid::arrow(length = grid::unit(0.18, "cm"), type = "closed"),
+        color = "gray15",
+        linewidth = 0.65
+      ) +
+      label_repel_geom(arrows_all, aes(x = .data$label_x, y = .data$label_y, label = .data$feature_label)) +
+      viridis::scale_color_viridis(option = "C", name = "Nfl") +
+      scale_k2_shape +
+      labs(
+        title = all_title,
+        subtitle = paste0("Arrows: ML-selected proteins; direction and length = correlation with PC1/PC2. n = ",
+                          nrow(bi_all_df))
+      ) +
+      all_axes +
+      theme_classic(base_size = 13)
+    ggsave(file.path(output_dir, "pca_all_proteins_biplot_ML_proteins_Nfl_k2.pdf"), p_all_bi,
+           width = 9.5, height = 6.5)
+  }
+}
+
 message("Saved:")
-message("  pls_component_alignment_comp1.pdf/png")
-message("  pls_loadings_X_MS_top5.csv, pls_loadings_Y_NULISA_top6.csv")
 message("  pca_biplot_gene_contribution.pdf")
 message("  pca_ML_proteins_{progression,slow_vital_capacity,Nfl}_k2.pdf")
+message("  pca_all_proteins_{progression,slow_vital_capacity,Nfl}_k2.pdf")
+message("  pca_all_proteins_biplot_ML_proteins_Nfl_k2.pdf, pca_all_proteins_ML_protein_correlations.csv")

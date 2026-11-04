@@ -613,3 +613,22 @@ Rscript Script/10_NULISA_Clustering.R \
   -e 9 \
   --disease TRUE \
   --reverse TRUE
+
+
+# Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns -b 100 -f 0.4 -l min --train_frac 0.7 --vis FALSE 
+# Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns -b 100 -f 0.4 -l min --train_frac 0.7 --vis TRUE 
+
+# Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns
+
+
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF -b 100 -f 0.4 -l min --vis FALSE
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix CSF
+
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA -b 100 -f 0.4 -l min --vis FALSE
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix PLASMA
+
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM -b 100 -f 0.4 -l min --vis FALSE
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix SERUM
