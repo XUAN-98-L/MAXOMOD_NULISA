@@ -7,6 +7,12 @@
 #   --rock_samples : ROCK_ALS/Results/01_Samples_summary  (samples_all_biofluids.csv: sample info)
 #   --rock_expr    : ROCK_ALS CSF NULISA data, long format (Target, NPQ, PatNr, ...)
 #                    [default: <rock_samples>/../csf/00_Initialization/Expression.csv]
+#   --onset_file   : ROCK-ALS onset / baseline dates (Date_onset, Date_BL, PatNr)
+#                    [default: <ROCK_ALS>/NULISA/ROCK_ALS_onset_date_pseud_for_Xuan.xlsx]
+#   --clinical_timeline : ROCK-ALS clinical timeline with the baseline (V1) ALSFRS-R
+#                    [default: <rock_samples>/../csf/00_Initialization/clinical_timeline.csv]
+#     -> progression_rate = (48 - ALSFRS-R at baseline) / (months from onset to baseline),
+#        1 month = 30.4375 days; fast if > --pr_cutoff (0.58 = median of the full ROCK-ALS cohort)
 #   --model_dir    : 08_Clustering_Feature_Selection output folder
 #                    (08_final_models.rds + 08_model_results.rds)
 #
@@ -68,6 +74,37 @@ option_list <- list(
     help = "P(beta) >= threshold -> beta [default: %default]"
   ),
   make_option(
+    c("--onset_file"), type = "character", default = NULL,
+    help = "Onset/baseline dates xlsx [default: <ROCK_ALS>/NULISA/ROCK_ALS_onset_date_pseud_for_Xuan.xlsx]"
+  ),
+  make_option(
+    c("--clinical_timeline"), type = "character", default = NULL,
+    help = "Clinical timeline csv with V1 ALSFRS-R [default: <rock_samples>/../csf/00_Initialization/clinical_timeline.csv]"
+  ),
+  make_option(
+    c("--pr_cutoff"), type = "numeric", default = 0.58,
+    help = "Progression-rate cutoff: > cutoff = fast, <= cutoff = slow [default: %default]"
+  ),
+  make_option(
+    c("--cont_vars"), type = "character",
+    default = "age,ALSFRS-R Score,Calculated Vital capacity (%),NfL,NEFL_NPQ,GFAP,progression_rate,months_onset_to_BL",
+    help = paste("Comma-separated continuous columns for the violin plots by predicted k2;",
+                 "NEFL_NPQ = raw NULISA NEFL NPQ of the ROCK-ALS CSF sample [default: %default]")
+  ),
+  make_option(
+    c("--Tertile"), type = "character", default = "FALSE",
+    help = paste("TRUE/FALSE. If TRUE, confidence filter within each predicted group: samples are first",
+                 "called alpha/beta by --threshold, then within each group split into tertiles of ensemble",
+                 "P(beta) and the tertile closest to the threshold is dropped as 'uncertain' (alpha keeps",
+                 "its lowest 2/3 of P(beta), beta its highest 2/3). Clinical plots/tests (treatment,",
+                 "categorical and continuous variables) then use only the confident samples; file names get",
+                 "suffix '_tertile'. Predictions, NfL vs NEFL and PCA are unchanged [default: %default]")
+  ),
+  make_option(
+    c("--outlier_z"), type = "numeric", default = 3,
+    help = "NfL vs NEFL: |studentized residual| above which a sample is an outlier (as 12_NFL.R) [default: %default]"
+  ),
+  make_option(
     c("--ensemble_exclude"), type = "character", default = "ridge",
     help = paste(
       "Comma-separated models left out of the ensemble (still reported individually).",
@@ -78,10 +115,16 @@ option_list <- list(
 )
 opt <- parse_args(OptionParser(option_list = option_list))
 
+use_tertile <- switch(toupper(trimws(opt$Tertile)),
+  "TRUE" = TRUE, "T" = TRUE, "YES" = TRUE, "1" = TRUE,
+  "FALSE" = FALSE, "F" = FALSE, "NO" = FALSE, "0" = FALSE,
+  stop("--Tertile must be TRUE or FALSE."))
+
 harm_modes <- c("none", "center", "standardize")
 main_mode <- tolower(opt$harmonize)
 if (!main_mode %in% harm_modes) stop("--harmonize must be none, center or standardize.")
 thr <- opt$threshold
+pr_cutoff <- opt$pr_cutoff
 
 output_dir <- opt$output
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
@@ -165,6 +208,58 @@ message("ROCK-ALS CSF samples with all ", length(features), " features: ", nrow(
         if (nrow(rock_X_raw) < n_before) paste0(" (", n_before - nrow(rock_X_raw), " dropped: missing values)") else "")
 not_in_expr <- setdiff(rock_samples$PatNr, rownames(rock_wide))
 if (length(not_in_expr) > 0L) message("  ", length(not_in_expr), " CSF samples in 01_Samples_summary have no NPQ data.")
+
+# ------------------------------------------------------------
+# Onset / baseline dates and progression rate
+#   progression_rate = (48 - ALSFRS-R at baseline) / (Date_BL - Date_onset, in months)
+# ------------------------------------------------------------
+rock_root <- dirname(dirname(normalizePath(opt$rock_samples)))   # .../ROCK_ALS
+onset_path <- opt$onset_file
+if (is.null(onset_path) || !nzchar(onset_path)) {
+  onset_path <- file.path(rock_root, "NULISA", "ROCK_ALS_onset_date_pseud_for_Xuan.xlsx")
+}
+timeline_path <- opt$clinical_timeline
+if (is.null(timeline_path) || !nzchar(timeline_path)) {
+  timeline_path <- file.path(dirname(normalizePath(opt$rock_samples)), "csf", "00_Initialization",
+                             "clinical_timeline.csv")
+}
+
+if (file.exists(onset_path) && file.exists(timeline_path)) {
+  onset <- readxl::read_excel(onset_path) %>%
+    transmute(
+      PatNr = gsub("-", "_", as.character(PatNr)),
+      Date_onset = as.Date(Date_onset),
+      Date_BL = as.Date(Date_BL)
+    ) %>%
+    distinct(PatNr, .keep_all = TRUE)
+  alsfrs_bl <- read_csv(timeline_path, show_col_types = FALSE, na = c("", "NA")) %>%
+    mutate(PatNr = gsub("-", "_", PatNr)) %>%
+    filter(grepl("^V1( |$)", VisitId)) %>%
+    transmute(PatNr, ALSFRS_R_BL = suppressWarnings(as.numeric(`ALSFRS-R Score`))) %>%
+    distinct(PatNr, .keep_all = TRUE)
+  prog <- onset %>%
+    left_join(alsfrs_bl, by = "PatNr") %>%
+    mutate(
+      months_onset_to_BL = as.numeric(Date_BL - Date_onset) / 30.4375,
+      progression_rate = ifelse(months_onset_to_BL > 0, (48 - ALSFRS_R_BL) / months_onset_to_BL, NA_real_),
+      progression_group = factor(
+        ifelse(is.na(progression_rate), NA, ifelse(progression_rate > pr_cutoff, "fast", "slow")),
+        levels = c("slow", "fast")
+      )
+    )
+  rock_samples <- rock_samples %>%
+    select(-any_of(c("Date_onset", "Date_BL", "ALSFRS_R_BL", "months_onset_to_BL",
+                     "progression_rate", "progression_group"))) %>%
+    left_join(prog, by = "PatNr")
+  n_pr <- sum(!is.na(rock_samples$progression_rate))
+  message("Progression rate: ", n_pr, "/", nrow(rock_samples), " CSF patients; median = ",
+          round(stats::median(rock_samples$progression_rate, na.rm = TRUE), 3),
+          " (cutoff ", pr_cutoff, ": ", sum(rock_samples$progression_group == "fast", na.rm = TRUE), " fast, ",
+          sum(rock_samples$progression_group == "slow", na.rm = TRUE), " slow)")
+} else {
+  message("Note: onset file (", onset_path, ") or clinical timeline (", timeline_path,
+          ") not found; progression rate not computed.")
+}
 
 # ============================================================
 # 3. Harmonisation
@@ -256,7 +351,8 @@ ens <- pred_long %>%
 
 meta_cols <- intersect(
   c("PatNr", "treatment", "group", "arm", "stratum", "sex", "age", "C9orf72", "PlateID", "SampleQC",
-    "visit_label", "ALSFRS-R Score", "Calculated Vital capacity (%)", "NfL", "GFAP"),
+    "visit_label", "ALSFRS-R Score", "Calculated Vital capacity (%)", "NfL", "GFAP",
+    "Date_onset", "Date_BL", "ALSFRS_R_BL", "months_onset_to_BL", "progression_rate", "progression_group"),
   colnames(rock_samples)
 )
 rock_meta <- rock_samples[, meta_cols, drop = FALSE] %>% distinct(PatNr, .keep_all = TRUE)
@@ -285,6 +381,60 @@ tabs <- lapply(harm_modes, write_mode_table)
 names(tabs) <- harm_modes
 main_tab <- tabs[[main_mode]]
 
+# Tertile-based confidence filter (--Tertile TRUE), within each predicted group:
+#   samples are called alpha/beta by --threshold; within each group, ensemble P(beta) is split
+#   into tertiles and the tertile nearest the threshold is dropped ("uncertain").
+#   alpha keeps P(beta) <= 2/3 quantile of the alpha group's P(beta);
+#   beta  keeps P(beta) >= 1/3 quantile of the beta group's P(beta).
+if (use_tertile) {
+  p_a <- main_tab$ensemble_P_beta[main_tab$ensemble_k2 == "alpha"]
+  p_b <- main_tab$ensemble_P_beta[main_tab$ensemble_k2 == "beta"]
+  if (length(p_a) < 3L || length(p_b) < 3L) stop("--Tertile TRUE needs at least 3 predicted samples in each group.")
+  tq <- c(stats::quantile(p_a, 2 / 3, names = FALSE), stats::quantile(p_b, 1 / 3, names = FALSE))
+  main_tab$tertile_k2 <- ifelse(main_tab$ensemble_k2 == "alpha",
+                                ifelse(main_tab$ensemble_P_beta <= tq[1], "alpha", "uncertain"),
+                                ifelse(main_tab$ensemble_P_beta >= tq[2], "beta", "uncertain"))
+  tert_n <- table(factor(main_tab$tertile_k2, levels = c("alpha", "uncertain", "beta")))
+  n_unc_a <- sum(main_tab$ensemble_k2 == "alpha" & main_tab$tertile_k2 == "uncertain")
+  n_unc_b <- sum(main_tab$ensemble_k2 == "beta" & main_tab$tertile_k2 == "uncertain")
+  message("Within-group tertile filter of ensemble P(beta) (", main_mode, "): alpha kept if P(beta) <= ",
+          round(tq[1], 3), " (", tert_n[["alpha"]], " of ", length(p_a), "), beta kept if P(beta) >= ",
+          round(tq[2], 3), " (", tert_n[["beta"]], " of ", length(p_b), "); uncertain dropped: ",
+          tert_n[["uncertain"]])
+  write.csv(main_tab %>%
+              select(PatNr, ensemble_P_beta, ensemble_k2, tertile_k2) %>%
+              mutate(cutoff_alpha = tq[1], cutoff_beta = tq[2], threshold = thr) %>%
+              arrange(ensemble_P_beta),
+            file.path(output_dir, paste0("ROCK_ALS_CSF_tertile_k2_", main_mode, ".csv")), row.names = FALSE)
+  main_tab$tertile_fill <- factor(ifelse(main_tab$tertile_k2 == "uncertain",
+                                         paste0("uncertain ", main_tab$ensemble_k2), main_tab$tertile_k2),
+                                  levels = c("alpha", "uncertain alpha", "uncertain beta", "beta"))
+  p_tert <- ggplot(main_tab, aes(x = .data$ensemble_P_beta, fill = .data$tertile_fill)) +
+    geom_histogram(binwidth = 0.025, boundary = 0, color = "white") +
+    geom_vline(xintercept = tq, linetype = "dashed", color = "gray30") +
+    geom_vline(xintercept = thr, linetype = "dotted", color = "gray55") +
+    scale_fill_manual(values = c(alpha = "#FC8D62", "uncertain alpha" = "#FDD0B8",
+                                 "uncertain beta" = "#D3DBEC", beta = "#8DA0CB"),
+                      drop = FALSE, name = "Class") +
+    labs(title = "ROCK-ALS CSF: within-group tertile filter of ensemble P(beta)",
+         subtitle = paste0("harmonize = ", main_mode, "; dotted = threshold ", thr,
+                           "; dashed = cutoffs (alpha <= ", round(tq[1], 2), ", beta >= ", round(tq[2], 2), ")"),
+         x = "Ensemble P(beta)", y = "Samples") +
+    theme_classic(base_size = 12)
+  ggsave(file.path(output_dir, paste0("ensemble_P_beta_tertiles_", main_mode, ".pdf")), p_tert, width = 7.5, height = 4.5)
+  main_tab$tertile_fill <- NULL
+  # Samples used in the clinical comparisons: confident alpha and beta only
+  clin_src <- main_tab %>% filter(tertile_k2 != "uncertain") %>% mutate(ensemble_k2 = tertile_k2)
+  clin_sfx <- "_tertile"
+  clin_note <- paste0("Within-group tertile filter: alpha P(beta) <= ", round(tq[1], 2), ", beta P(beta) >= ",
+                      round(tq[2], 2), "; tertile nearest ", thr, " excluded (", n_unc_a, " alpha, ",
+                      n_unc_b, " beta)")
+} else {
+  clin_src <- main_tab
+  clin_sfx <- ""
+  clin_note <- NULL
+}
+
 # Summary counts
 summ <- pred_long %>%
   count(harmonize, model, pred_k2) %>%
@@ -310,10 +460,10 @@ agree_summary <- data.frame(
 write.csv(agree_summary, file.path(output_dir, "harmonization_agreement.csv"), row.names = FALSE)
 
 # By treatment arm (main mode)
-if ("treatment" %in% colnames(main_tab)) {
-  by_trt <- main_tab %>% count(treatment, ensemble_k2) %>%
+if ("treatment" %in% colnames(clin_src)) {
+  by_trt <- clin_src %>% count(treatment, ensemble_k2) %>%
     group_by(treatment) %>% mutate(fraction = n / sum(n)) %>% ungroup()
-  write.csv(by_trt, file.path(output_dir, paste0("predicted_k2_by_treatment_", main_mode, ".csv")), row.names = FALSE)
+  write.csv(by_trt, file.path(output_dir, paste0("predicted_k2_by_treatment_", main_mode, clin_sfx, ".csv")), row.names = FALSE)
 }
 
 # ============================================================
@@ -376,18 +526,19 @@ p_prob <- ggplot(pl_main, aes(x = .data$model, y = .data$P_beta)) +
 ggsave(file.path(output_dir, paste0("predicted_P_beta_by_model_", main_mode, ".pdf")), p_prob, width = 8, height = 5)
 
 # (d) Predicted group by treatment arm (ensemble, main mode)
-if ("treatment" %in% colnames(main_tab)) {
-  p_trt <- ggplot(main_tab, aes(x = .data$treatment, fill = .data$ensemble_k2)) +
+if ("treatment" %in% colnames(clin_src)) {
+  p_trt <- ggplot(clin_src, aes(x = .data$treatment, fill = .data$ensemble_k2)) +
     geom_bar(position = "fill", width = 0.65) +
     geom_text(stat = "count", aes(label = after_stat(count)),
               position = position_fill(vjust = 0.5), size = 3.5) +
     scale_fill_manual(values = k2_cols, name = "Predicted k2") +
     scale_y_continuous(labels = scales::percent) +
     labs(title = "ROCK-ALS CSF: predicted k2 by treatment arm (ensemble)",
-         subtitle = paste0("harmonize = ", main_mode, ", threshold = ", thr), x = NULL, y = "Fraction") +
+         subtitle = paste0("harmonize = ", main_mode, ", threshold = ", thr,
+                           if (use_tertile) paste0("\n", clin_note) else ""), x = NULL, y = "Fraction") +
     theme_classic(base_size = 12) +
     theme(axis.text.x = element_text(angle = 15, hjust = 1))
-  ggsave(file.path(output_dir, paste0("predicted_k2_by_treatment_", main_mode, ".pdf")), p_trt, width = 7, height = 5)
+  ggsave(file.path(output_dir, paste0("predicted_k2_by_treatment_", main_mode, clin_sfx, ".pdf")), p_trt, width = 7, height = 5)
 }
 
 # (e) Clinical characteristics by predicted k2 (ensemble, main mode): counts and proportions
@@ -395,15 +546,20 @@ clin_vars <- c(
   "treatment" = "Treatment arm",
   "sex" = "Sex",
   "stratum" = "Onset (stratum)",
-  "C9orf72" = "C9orf72 status"
+  "C9orf72" = "C9orf72 status",
+  "progression_group" = "Progression"
 )
-clin_vars <- clin_vars[names(clin_vars) %in% colnames(main_tab)]
+clin_vars <- clin_vars[names(clin_vars) %in% colnames(clin_src)]
 if (length(clin_vars) > 0L) {
   clin_long <- bind_rows(lapply(names(clin_vars), function(v) {
     data.frame(
       variable = clin_vars[[v]],
-      k2 = main_tab$ensemble_k2,
-      category = ifelse(is.na(main_tab[[v]]), "missing", as.character(main_tab[[v]])),
+      k2 = clin_src$ensemble_k2,
+      category = ifelse(is.na(clin_src[[v]]), "missing",
+                        if (v == "progression_group") paste0(as.character(clin_src[[v]]),
+                          ifelse(as.character(clin_src[[v]]) == "fast", paste0(" (>", pr_cutoff, ")"),
+                                 paste0(" (<=", pr_cutoff, ")")))
+                        else as.character(clin_src[[v]])),
       stringsAsFactors = FALSE
     )
   }))
@@ -425,7 +581,7 @@ if (length(clin_vars) > 0L) {
       .groups = "drop"
     )
   clin_tab <- clin_tab %>% left_join(clin_p, by = "variable")
-  write.csv(clin_tab, file.path(output_dir, paste0("clinical_by_predicted_k2_", main_mode, ".csv")),
+  write.csv(clin_tab, file.path(output_dir, paste0("clinical_by_predicted_k2_", main_mode, clin_sfx, ".csv")),
             row.names = FALSE)
 
   facet_lab <- setNames(
@@ -454,17 +610,214 @@ if (length(clin_vars) > 0L) {
     scale_y_continuous(labels = function(x) paste0(x, "%"), expand = expansion(mult = c(0, 0.02))) +
     labs(
       title = "ROCK-ALS CSF: clinical characteristics by predicted k2",
-      subtitle = paste0("Ensemble prediction (harmonize = ", main_mode, "); labels = n (% within predicted group)"),
+      subtitle = paste0("Ensemble prediction (harmonize = ", main_mode, "); labels = n (% within predicted group)",
+                        if (use_tertile) paste0("\n", clin_note) else ""),
       x = "Predicted k2", y = "Patients (%)"
     ) +
     theme_classic(base_size = 11) +
     theme(strip.background = element_blank(), strip.text = element_text(face = "bold"))
-  ggsave(file.path(output_dir, paste0("clinical_by_predicted_k2_", main_mode, ".pdf")), p_clin,
+  ggsave(file.path(output_dir, paste0("clinical_by_predicted_k2_", main_mode, clin_sfx, ".pdf")), p_clin,
          width = 3 * length(clin_vars) + 1, height = 5.5)
 }
 
+# (f) Continuous clinical variables by predicted k2: violin + dot plots
+#     (as plot_cont_by_k2() in MAXOMOD_CSF/Script/09_Clinical_features_subclusters.R;
+#     test and p-value shown as subtitle instead of an in-panel table, so they do not cover the dots).
+#     Test chosen automatically: both groups Shapiro p > 0.05 -> t-test (Student's if Levene
+#     p > 0.05, else Welch's); otherwise, or if a group has n < 3, Wilcoxon rank-sum.
+choose_test_two_groups <- function(y, g) {
+  g <- droplevels(factor(g))
+  grp <- split(y, g)
+  if (min(lengths(grp)) < 3) return(list(name = "Wilcoxon rank-sum", test = wilcox.test(y ~ g, exact = FALSE)))
+  sw <- vapply(grp, function(v) tryCatch(shapiro.test(v)$p.value, error = function(e) NA_real_), numeric(1))
+  if (all(!is.na(sw) & sw > 0.05)) {
+    lev <- tryCatch(car::leveneTest(y ~ g)$`Pr(>F)`[1], error = function(e) NA_real_)
+    if (!is.na(lev) && lev > 0.05) list(name = "Student's t-test", test = t.test(y ~ g, var.equal = TRUE))
+    else list(name = "Welch's t-test", test = t.test(y ~ g))
+  } else {
+    list(name = "Wilcoxon rank-sum", test = wilcox.test(y ~ g, exact = FALSE))
+  }
+}
+format_p_cont <- function(p) {
+  if (is.na(p)) return("NA")
+  if (p < 1e-4) return(formatC(p, format = "e", digits = 2))
+  sprintf("%.3f", p)
+}
+plot_cont_by_pred_k2 <- function(df, var_col, var_label = var_col, linesize = 0.5) {
+  d <- df[!is.na(df$ensemble_k2), c("ensemble_k2", var_col)]
+  names(d) <- c("k2", "value")
+  d$value <- suppressWarnings(as.numeric(d$value))
+  d <- d[!is.na(d$value), ]
+  d$k2 <- droplevels(factor(d$k2, levels = c("alpha", "beta")))
+  if (nlevels(d$k2) != 2L || nrow(d) < 4L) return(NULL)
+  tst <- choose_test_two_groups(d$value, d$k2)
+  pval <- tst$test$p.value
+  n_by <- table(d$k2)
+  p <- ggplot(d, aes(x = .data$k2, y = .data$value, fill = .data$k2)) +
+    geom_violin(trim = FALSE, color = "black", fill = "white") +
+    geom_dotplot(binaxis = "y", stackdir = "center", dotsize = 0.8, color = "black") +
+    scale_fill_manual(values = k2_cols, name = "Predicted k2") +
+    scale_x_discrete(labels = paste0(levels(d$k2), "\n(n = ", as.integer(n_by[levels(d$k2)]), ")")) +
+    labs(x = if (use_tertile) "Predicted k2 (confident 2/3 of each group)" else "Predicted k2",
+         y = var_label, subtitle = paste0(tst$name, ", p = ", format_p_cont(pval))) +
+    theme_classic(base_size = 14) +
+    theme(panel.background = element_rect(linewidth = linesize),
+          axis.text = element_text(size = 12), axis.title = element_text(size = 14),
+          legend.text = element_text(size = 12), legend.title = element_text(size = 14),
+          plot.subtitle = element_text(size = 11))
+  list(plot = p, stats = data.frame(variable = var_col, n_alpha = as.integer(n_by["alpha"]),
+                                    n_beta = as.integer(n_by["beta"]),
+                                    median_alpha = median(d$value[d$k2 == "alpha"]),
+                                    median_beta = median(d$value[d$k2 == "beta"]),
+                                    mean_alpha = mean(d$value[d$k2 == "alpha"]),
+                                    mean_beta = mean(d$value[d$k2 == "beta"]),
+                                    test = tst$name, p_value = pval, check.names = FALSE))
+}
+
+# Raw NULISA NEFL NPQ per sample, added so it can be plotted next to clinical NfL
+cont_tab <- clin_src %>%
+  left_join(rock_long %>%
+              filter(Target == "NEFL", PatNr %in% clin_src$PatNr) %>%
+              group_by(PatNr) %>%
+              summarise(NEFL_NPQ = mean(NPQ, na.rm = TRUE), .groups = "drop"),
+            by = "PatNr")
+cont_vars <- trimws(strsplit(opt$cont_vars, ",", fixed = TRUE)[[1]])
+cont_vars <- cont_vars[nzchar(cont_vars)]
+miss_cont <- setdiff(cont_vars, colnames(cont_tab))
+if (length(miss_cont) > 0L) message("Note: continuous variable(s) not found, skipped: ", paste(miss_cont, collapse = ", "))
+cont_vars <- intersect(cont_vars, colnames(cont_tab))
+if (length(cont_vars) > 0L && requireNamespace("gridExtra", quietly = TRUE)) {
+  cont_dir <- file.path(output_dir, paste0("clinical_continuous_by_predicted_k2_", main_mode, clin_sfx))
+  if (!dir.exists(cont_dir)) dir.create(cont_dir, recursive = TRUE)
+  cont_label <- c("progression_rate" = "Progression rate (points/month)",
+                  "months_onset_to_BL" = "Months from onset to baseline",
+                  "NfL" = "NfL (pg/ml)", "NEFL_NPQ" = "NULISA NEFL NPQ (CSF)", "GFAP" = "GFAP (pg/ml)", "age" = "Age (years)")
+  safe_name <- function(x) gsub("_+$", "", gsub("[^A-Za-z0-9]+", "_", x))
+  cont_res <- list()
+  for (v in cont_vars) {
+    lab <- if (v %in% names(cont_label)) cont_label[[v]] else v
+    r <- tryCatch(plot_cont_by_pred_k2(cont_tab, v, lab), error = function(e) {
+      message("Note: violin plot for '", v, "' failed: ", conditionMessage(e)); NULL })
+    if (is.null(r)) next
+    ggsave(file.path(cont_dir, paste0("k2_vs_", safe_name(v), ".pdf")), r$plot, width = 4.8, height = 4.2)
+    cont_res[[v]] <- r
+  }
+  if (length(cont_res) > 0L) {
+    cont_stats <- bind_rows(lapply(cont_res, `[[`, "stats"))
+    write.csv(cont_stats, file.path(cont_dir, "continuous_by_predicted_k2_tests.csv"), row.names = FALSE)
+    n_p <- length(cont_res)
+    ncol_m <- if (n_p <= 2) n_p else if (n_p <= 4) 2 else 3
+    nrow_m <- ceiling(n_p / ncol_m)
+    merged <- do.call(gridExtra::arrangeGrob,
+                      c(lapply(cont_res, function(r) r$plot + theme(legend.position = "none")),
+                        ncol = ncol_m, nrow = nrow_m))
+    ggsave(file.path(cont_dir, "k2_vs_merged.pdf"), merged, width = 4.8 * ncol_m, height = 4.2 * nrow_m)
+    cat("\nContinuous clinical variables by predicted k2 (", main_mode, "):\n", sep = "")
+    print(cont_stats %>% select(variable, n_alpha, n_beta, median_alpha, median_beta, test, p_value) %>%
+            mutate(across(where(is.numeric), ~ signif(.x, 3))), row.names = FALSE)
+  }
+} else if (length(cont_vars) > 0L) {
+  message("Note: package gridExtra not installed; continuous violin plots skipped.")
+}
+
 # ============================================================
-# 6. PCA of ROCK-ALS CSF samples (as in 09_PCA_ML_Genes.R)
+# 6. Clinical NfL vs NULISA NEFL NPQ (same logic as 12_NFL.R)
+#    Spearman (NfL) and Pearson (log2 NfL) correlations; outliers = |studentized residual|
+#    from lm(NEFL NPQ ~ log2 NfL) > --outlier_z. Raw NEFL NPQ (not NPQ_adj).
+# ============================================================
+nefl_dir <- file.path(output_dir, "NfL_vs_NEFL")
+if (!dir.exists(nefl_dir)) dir.create(nefl_dir, recursive = TRUE)
+
+nefl_npq <- rock_long %>%
+  filter(Target == "NEFL", PatNr %in% main_tab$PatNr) %>%
+  group_by(PatNr) %>%
+  summarise(NEFL_NPQ = mean(NPQ, na.rm = TRUE), .groups = "drop")
+if (nrow(nefl_npq) == 0L) message("Note: NEFL not found in ROCK-ALS Expression.csv; NfL vs NEFL skipped.")
+
+nefl_out_ids <- character(0)
+nefl_out_label <- character(0)
+if (nrow(nefl_npq) > 0L && "NfL" %in% colnames(main_tab)) {
+  nd <- main_tab %>%
+    select(PatNr, any_of(c("sex", "stratum", "treatment", "NfL")), ensemble_k2, ensemble_P_beta) %>%
+    left_join(nefl_npq, by = "PatNr") %>%
+    mutate(NfL = suppressWarnings(as.numeric(NfL))) %>%
+    filter(!is.na(NfL), NfL > 0, !is.na(NEFL_NPQ))
+  message("NfL vs NEFL: samples with both values n = ", nrow(nd))
+  if (nrow(nd) >= 4L) {
+    nd$log2_NfL <- log2(nd$NfL)
+    fit_n <- lm(NEFL_NPQ ~ log2_NfL, data = nd)
+    nd$stud_resid <- rstudent(fit_n)
+    nd$cooks_d <- cooks.distance(fit_n)
+    nd$outlier <- abs(nd$stud_resid) > opt$outlier_z
+    na_dash <- function(x) ifelse(is.na(x) | !nzchar(as.character(x)), "NA", as.character(x))
+    nd$label_full <- paste0(nd$PatNr, "\n", tolower(na_dash(nd$sex)), ", ",
+                            if ("stratum" %in% names(nd)) paste0(na_dash(nd$stratum), " onset, ") else "",
+                            "predicted ", na_dash(nd$ensemble_k2))
+    n_out <- sum(nd$outlier)
+    message("NfL vs NEFL outliers (|studentized residual| > ", opt$outlier_z, "): ", n_out,
+            if (n_out > 0) paste0(" -> ", paste(gsub("\n", " (", nd$label_full[nd$outlier]), collapse = "), "), ")") else "")
+    nefl_out_ids <- nd$PatNr[nd$outlier]
+    nefl_out_label <- nd$label_full[nd$outlier]
+    write.csv(nd, file.path(nefl_dir, "NfL_vs_NEFL_CSF_data.csv"), row.names = FALSE)
+    if (n_out > 0) {
+      write.csv(nd[nd$outlier, intersect(c("PatNr", "sex", "stratum", "treatment", "ensemble_k2", "ensemble_P_beta",
+                                            "NfL", "NEFL_NPQ", "stud_resid", "cooks_d"), names(nd))],
+                file.path(nefl_dir, "NfL_vs_NEFL_CSF_outliers.csv"), row.names = FALSE)
+    }
+
+    nefl_cor <- function(d, label) {
+      if (nrow(d) < 4L) return(NULL)
+      sp <- suppressWarnings(cor.test(d$NfL, d$NEFL_NPQ, method = "spearman", exact = FALSE))
+      pe <- cor.test(d$log2_NfL, d$NEFL_NPQ, method = "pearson")
+      fit <- lm(NEFL_NPQ ~ log2_NfL, data = d)
+      data.frame(samples = label, n = nrow(d),
+                 spearman_rho = unname(sp$estimate), spearman_p = sp$p.value,
+                 pearson_r_log = unname(pe$estimate), pearson_p = pe$p.value,
+                 pearson_ci_low = pe$conf.int[1], pearson_ci_high = pe$conf.int[2],
+                 slope_NPQ_per_log2_NfL = unname(coef(fit)[2]), r_squared = summary(fit)$r.squared)
+    }
+    nstats <- bind_rows(nefl_cor(nd, "all"), if (n_out > 0) nefl_cor(nd[!nd$outlier, ], "without outliers"))
+    write.csv(nstats, file.path(nefl_dir, "NfL_vs_NEFL_CSF_correlation.csv"), row.names = FALSE)
+    cat("\nROCK-ALS: clinical NfL vs NULISA NEFL NPQ (CSF):\n")
+    print(nstats %>% mutate(across(where(is.numeric), ~ signif(.x, 3))), row.names = FALSE)
+
+    fmt_p <- function(p) ifelse(p < 0.001, formatC(p, format = "e", digits = 1), formatC(p, format = "f", digits = 3))
+    n_sub <- paste(vapply(seq_len(nrow(nstats)), function(k) {
+      s <- nstats[k, ]
+      sprintf("%s: Spearman rho = %.2f (p = %s), Pearson r (log NfL) = %.2f, n = %d",
+              s$samples, s$spearman_rho, fmt_p(s$spearman_p), s$pearson_r_log, s$n)
+    }, character(1)), collapse = "\n")
+    out_lab <- paste0("outlier (|stud. resid.| > ", opt$outlier_z, ")")
+    nd$point_type <- factor(ifelse(nd$outlier, "outlier", "sample"), levels = c("sample", "outlier"))
+    n_lab_geom <- if (requireNamespace("ggrepel", quietly = TRUE)) {
+      ggrepel::geom_text_repel(data = nd[nd$outlier, ], aes(label = .data$label_full), size = 3.3,
+                               color = "#B2182B", fontface = "bold", min.segment.length = 0,
+                               box.padding = 0.6, seed = 1)
+    } else {
+      geom_text(data = nd[nd$outlier, ], aes(label = .data$label_full), size = 3.3, color = "#B2182B",
+                fontface = "bold", vjust = -1)
+    }
+    p_n <- ggplot(nd, aes(x = .data$NfL, y = .data$NEFL_NPQ)) +
+      geom_smooth(method = "lm", formula = y ~ x, color = "gray25", fill = "gray80", linewidth = 0.8) +
+      geom_point(aes(color = .data$point_type, shape = .data$point_type), size = 3, alpha = 0.9) +
+      n_lab_geom +
+      scale_x_log10() +
+      scale_color_manual(values = c(sample = "#4575B4", outlier = "#B2182B"), drop = FALSE,
+                         labels = c(sample = "sample", outlier = out_lab), name = NULL) +
+      scale_shape_manual(values = c(sample = 16, outlier = 17), drop = FALSE,
+                         labels = c(sample = "sample", outlier = out_lab), name = NULL) +
+      labs(subtitle = n_sub, x = "Clinical NfL (pg/ml, log scale)", y = "NULISA NEFL NPQ (ROCK-ALS CSF)") +
+      theme_classic(base_size = 12) +
+      theme(plot.subtitle = element_text(size = 9), legend.position = "bottom")
+    ggsave(file.path(nefl_dir, "NfL_vs_NEFL_CSF.pdf"), p_n, width = 7, height = 6)
+    ggsave(file.path(nefl_dir, "NfL_vs_NEFL_CSF.png"), p_n, width = 7, height = 6, dpi = 300)
+  } else {
+    message("Note: fewer than 4 ROCK-ALS samples with both NfL and NEFL; correlation skipped.")
+  }
+}
+
+# ============================================================
+# 7. PCA of ROCK-ALS CSF samples (as in 09_PCA_ML_Genes.R)
 #    Shape = ensemble-predicted k2 (main harmonisation mode).
 #    PCA uses ROCK-ALS NPQ_adj (age + sex + PlateID removed, treatment group protected;
 #    made by ROCK_ALS 00_Initialization.R), as in ROCK_ALS 06_PCA.R. Falls back to raw NPQ
@@ -493,14 +846,21 @@ scale_k2_shape <- scale_shape_manual(values = c(alpha = 16, beta = 17), name = "
 # Sample annotation (ROCK-ALS clinical variables used for colouring)
 pca_meta <- main_tab %>%
   select(PatNr, ensemble_k2, any_of(c("treatment", "ALSFRS-R Score", "Calculated Vital capacity (%)",
-                                      "NfL", "GFAP"))) %>%
-  mutate(ensemble_k2 = factor(ensemble_k2, levels = c("alpha", "beta")))
+                                      "NfL", "GFAP", "progression_rate", "progression_group"))) %>%
+  mutate(ensemble_k2 = factor(ensemble_k2, levels = c("alpha", "beta"))) %>%
+  left_join(if (nrow(nefl_npq) > 0L) rename(nefl_npq, `NULISA NEFL NPQ` = NEFL_NPQ)
+            else data.frame(PatNr = character(0)), by = "PatNr") %>%
+  mutate(nfl_outlier = PatNr %in% nefl_out_ids,
+         nfl_out_label = nefl_out_label[match(PatNr, nefl_out_ids)])
 color_vars <- list(
   list(col = "ALSFRS-R Score", file = "ALSFRS_R", log = FALSE),
   list(col = "Calculated Vital capacity (%)", file = "Vital_capacity", log = FALSE),
   list(col = "NfL", file = "NfL", log = TRUE),
+  list(col = "NULISA NEFL NPQ", file = "NEFL_NPQ", log = FALSE),
   list(col = "GFAP", file = "GFAP", log = TRUE),
-  list(col = "treatment", file = "treatment", log = FALSE)
+  list(col = "treatment", file = "treatment", log = FALSE),
+  list(col = "progression_rate", file = "progression_rate", log = FALSE),
+  list(col = "progression_group", file = "progression_group", log = FALSE)
 )
 
 # Value used for PCA: NPQ_adj (as ROCK_ALS 06_PCA.R) if available, else raw NPQ
@@ -563,6 +923,9 @@ make_pca_plots <- function(X, set_name, set_title, arrow_features, arrow_mode, r
     if (cv$col == "treatment") {
       scale_color_manual(values = c("Placebo" = "gray45", "Fasudil 15mg (30mg/Day)" = "#66C2A5",
                                     "Fasudil 30mg (60mg/Day)" = "#1B7837"), name = "treatment")
+    } else if (cv$col == "progression_group") {
+      scale_color_manual(values = c(slow = "#4575B4", fast = "#D73027"), na.value = "gray75",
+                         name = paste0("Progression\n(cutoff ", pr_cutoff, ")"))
     } else if (isTRUE(cv$log)) {
       scale_color_viridis_c(option = "C", name = paste0(cv$col, "\n(log10 scale)"), trans = "log10",
                             na.value = "gray75")
@@ -581,6 +944,22 @@ make_pca_plots <- function(X, set_name, set_title, arrow_features, arrow_mode, r
       labs(title = ttl, subtitle = paste0("Shape = predicted k2 (ensemble, ", main_mode, "); n = ", nrow(df),
                                           if (n_na > 0) paste0(" (", n_na, " with missing ", cv$col, " in grey)") else "")) +
       axes + theme_classic(base_size = 13)
+    # NfL / NEFL plots: red ring + label on the NfL-vs-NEFL outlier(s) from section 6
+    if (cv$col %in% c("NfL", "NULISA NEFL NPQ") && any(df$nfl_outlier)) {
+      od <- df[df$nfl_outlier, ]
+      p <- p + geom_point(data = od, aes(x = .data$PC1, y = .data$PC2), inherit.aes = FALSE,
+                          shape = 21, size = 6.5, stroke = 1.3, color = "#B2182B", fill = NA) +
+        (if (requireNamespace("ggrepel", quietly = TRUE)) {
+          ggrepel::geom_text_repel(data = od, aes(x = .data$PC1, y = .data$PC2, label = .data$nfl_out_label),
+                                   inherit.aes = FALSE, size = 3.1, fontface = "bold", color = "#B2182B",
+                                   box.padding = 1.2, point.padding = 1.2, segment.color = "#B2182B",
+                                   min.segment.length = 0, seed = 1)
+        } else {
+          geom_text(data = od, aes(x = .data$PC1, y = .data$PC2, label = .data$nfl_out_label),
+                    inherit.aes = FALSE, size = 3.1, fontface = "bold", color = "#B2182B", vjust = -1.2)
+        }) +
+        labs(caption = paste0("Red ring = NfL vs NEFL outlier (|stud. resid.| > ", opt$outlier_z, ")"))
+    }
     ggsave(file.path(pca_dir, paste0("pca_", set_name, "_", cv$file, "_k2.pdf")), p, width = 8, height = 6)
   }
 
@@ -641,5 +1020,9 @@ message("  ROCK_ALS_CSF_predicted_k2_{none,center,standardize}.csv  (per-sample 
 message("  prediction_counts_by_model.csv, harmonization_agreement.csv, feature_shift_MAXOMOD_vs_ROCK.csv")
 message("  predicted_k2_by_treatment_", main_mode, ".csv/.pdf")
 message("  feature_distribution_MAXOMOD_vs_ROCK.pdf, predicted_P_beta_by_model_", main_mode, ".pdf")
-message("  clinical_by_predicted_k2_", main_mode, ".csv/.pdf  (clinical variables by predicted k2)")
+message("  clinical_by_predicted_k2_", main_mode, clin_sfx, ".csv/.pdf  (clinical variables by predicted k2)")
+if (use_tertile) message("  ROCK_ALS_CSF_tertile_k2_", main_mode, ".csv, ensemble_P_beta_tertiles_", main_mode,
+                         ".pdf  (--Tertile TRUE: clinical outputs use the confident 2/3 of each predicted group)")
+message("  clinical_continuous_by_predicted_k2_", main_mode, clin_sfx, "/  (violin plots of continuous clinical variables; as MAXOMOD 09)")
+message("  NfL_vs_NEFL/  (clinical NfL vs NULISA NEFL NPQ: correlation, outliers; as 12_NFL.R)")
 message("  PCA_predicted_k2_", main_mode, "/  (PCA of ML-selected and all proteins; shape = predicted k2)")

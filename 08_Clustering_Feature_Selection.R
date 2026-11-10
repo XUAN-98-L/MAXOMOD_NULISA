@@ -65,6 +65,16 @@ option_list <- list(
     help = "Which panel(s) to use: 'cns', 'immune' or 'both' [default: %default]"
   ),
   make_option(
+    c("--metric"),
+    type = "character",
+    default = "ROC",
+    help = paste(
+      "Tuning metric for the penalised models (LASSO, elastic net, ridge): 'ROC' (maximise CV ROC AUC)",
+      "or 'logLoss' (minimise CV log loss). RF/SVM/XGBoost always use ROC. With logLoss the output",
+      "folder gets a '_logLoss' suffix [default: %default]"
+    )
+  ),
+  make_option(
     c("--matrix"),
     type = "character",
     default = "CSF",
@@ -179,6 +189,14 @@ matrix_npq <- matrix_key
 matrix_meta <- switch(matrix_key, CSF = "CSF", SERUM = "Serum", PLASMA = "Plasma")
 panel_label <- paste0(panel_label, ", ", matrix_meta)   # used in plot titles
 
+# Tuning metric for the penalised (glmnet) models
+tune_metric <- switch(tolower(trimws(opt$metric)),
+  "roc" = "ROC",
+  "logloss" = "logLoss",
+  stop("--metric must be 'ROC' or 'logLoss'.")
+)
+if (tune_metric == "logLoss") panel_label <- paste0(panel_label, ", logLoss-tuned")
+
 vis_arg <- if (is.null(opt$vis)) "BOTH" else toupper(trimws(opt$vis))
 vis_mode <- switch(vis_arg,
   "FALSE" = "compute", "F" = "compute",
@@ -240,13 +258,14 @@ parse_panel_paths <- function(input_arg, panel_choice) {
   list(npq = npq, metadata = metadata)
 }
 
-default_output_dir <- function(input_arg, panel_choice, matrix_meta) {
-  # CSF keeps the original folder name; Serum/Plasma get a suffix
+default_output_dir <- function(input_arg, panel_choice, matrix_meta, tune_metric = "ROC") {
+  # CSF keeps the original folder name; Serum/Plasma get a suffix; logLoss tuning adds "_logLoss"
   leaf_name <- if (matrix_meta == "CSF") {
     "08_Clustering_Feature_Selection"
   } else {
     paste0("08_Clustering_Feature_Selection_", matrix_meta)
   }
+  if (tune_metric == "logLoss") leaf_name <- paste0(leaf_name, "_logLoss")
   leaf <- file.path("Without_tears", leaf_name)
   if (grepl(",", input_arg, fixed = TRUE)) {
     return(paste0(leaf_name, "_", panel_choice))
@@ -263,7 +282,7 @@ panel_paths <- parse_panel_paths(opt$input, panel_choice)
 metadata_path <- panel_paths$metadata
 
 output_dir <- if (is.null(opt$output) || !nzchar(opt$output)) {
-  default_output_dir(opt$input, panel_choice, matrix_meta)
+  default_output_dir(opt$input, panel_choice, matrix_meta, tune_metric)
 } else {
   opt$output
 }
@@ -281,6 +300,8 @@ message("      Splits: ", BS_number, " stratified random splits (train ", train_
         "% / validation ", (1 - train_frac) * 100, "% per class)")
 message("      Feature selection: one LASSO per train split (lambda.", lambda_value, ")")
 message("      Final feature cutoff (fraction of splits): ", feature_freq_cutoff)
+message("      Tuning metric (LASSO/elastic net/ridge): ", tune_metric,
+        if (tune_metric == "logLoss") " (minimised)" else " (maximised)", "; RF/SVM/XGBoost: ROC")
 message("      SHAP nsim: ", shap_nsim, ", top features in plot: ", shap_top_n)
 
 # Long sample table (one matrix) -> wide matrix (samples x prefixed features)
@@ -329,6 +350,15 @@ n_cv_folds <- function(sample_id, y_vec, k_max = cv_folds) {
   as.integer(max(2L, min(k_max, min_class)))
 }
 
+# CV summary: ROC/Sens/Spec, plus log loss when tuning by logLoss
+cv_summary <- if (tune_metric == "logLoss") {
+  function(data, lev = NULL, model = NULL) {
+    c(twoClassSummary(data, lev, model), mnLogLoss(data, lev, model))
+  }
+} else {
+  twoClassSummary
+}
+
 # caret trainControl whose CV folds are grouped by original sample
 grouped_train_control <- function(sample_id, y_vec) {
   k <- n_cv_folds(sample_id, y_vec)
@@ -339,7 +369,7 @@ grouped_train_control <- function(sample_id, y_vec) {
     method = "cv",
     index = index,
     classProbs = TRUE,
-    summaryFunction = twoClassSummary,
+    summaryFunction = cv_summary,
     savePredictions = TRUE
   )
 }
@@ -434,17 +464,20 @@ fit_caret_model <- function(model_key, train_df, train_control) {
     lasso = {
       lasso_grid <- expand.grid(alpha = 1, lambda = 10^seq(-3, 1, length = 50))
       train(class ~ ., data = train_df, method = "glmnet",
-            metric = "ROC", trControl = train_control, tuneGrid = lasso_grid)
+            metric = tune_metric, maximize = (tune_metric == "ROC"),
+            trControl = train_control, tuneGrid = lasso_grid)
     },
     elastic_net = {
       enet_grid <- expand.grid(alpha = 0.5, lambda = 10^seq(-3, 1, length = 50))
       train(class ~ ., data = train_df, method = "glmnet",
-            metric = "ROC", trControl = train_control, tuneGrid = enet_grid)
+            metric = tune_metric, maximize = (tune_metric == "ROC"),
+            trControl = train_control, tuneGrid = enet_grid)
     },
     ridge = {
       ridge_grid <- expand.grid(alpha = 0, lambda = 10^seq(-3, 1, length = 50))
       train(class ~ ., data = train_df, method = "glmnet",
-            metric = "ROC", trControl = train_control, tuneGrid = ridge_grid)
+            metric = tune_metric, maximize = (tune_metric == "ROC"),
+            trControl = train_control, tuneGrid = ridge_grid)
     },
     rf = train(class ~ ., data = train_df, method = "rf",
                metric = "ROC", trControl = train_control, tuneLength = 3, ntree = 500),
@@ -891,6 +924,7 @@ if (run_compute) {
       settings = list(
         panel_choice = panel_choice,
         matrix = matrix_meta,
+        tune_metric = tune_metric,
         panel_label = panel_label,
         BS_number = BS_number,
         train_frac = train_frac,
