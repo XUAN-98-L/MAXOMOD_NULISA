@@ -38,6 +38,9 @@ message("      Libraries loaded.")
 #
 # --NEFL TRUE : after LASSO selection, NEFL (CNS_NEFL) is always added to the feature
 #               list of every ML model (per split and final/SHAP); output folder gets "_NEFL"
+# --metric logLoss (default): all 7 models tuned by CV log loss -> folder suffix "_logLoss"
+# --metric ROC (optional)    : all 7 models tuned by CV ROC AUC   -> folder without suffix
+#   (use the same --metric for --vis FALSE and --vis TRUE so the folder matches)
 # --vis FALSE : run splits/feature selection/models/SHAP values, save to 08_model_results.rds
 #               and 08_final_models.rds (no plots)
 # --vis TRUE  : only make plots from those .rds files (same -i/--panel/-o so the folder matches)
@@ -74,11 +77,11 @@ option_list <- list(
   make_option(
     c("--metric"),
     type = "character",
-    default = "ROC",
+    default = "logLoss",
     help = paste(
-      "Tuning metric for the penalised models (LASSO, elastic net, ridge): 'ROC' (maximise CV ROC AUC)",
-      "or 'logLoss' (minimise CV log loss). RF/SVM/XGBoost always use ROC. With logLoss the output",
-      "folder gets a '_logLoss' suffix [default: %default]"
+      "Tuning metric for all ML models (LASSO, elastic net, ridge, RF, SVM, XGBoost):",
+      "'logLoss' (minimise CV log loss, default) or 'ROC' (maximise CV ROC AUC, optional).",
+      "logLoss output folders get a '_logLoss' suffix; ROC folders have none [default: %default]"
     )
   ),
   make_option(
@@ -207,7 +210,7 @@ matrix_npq <- matrix_key
 matrix_meta <- switch(matrix_key, CSF = "CSF", SERUM = "Serum", PLASMA = "Plasma")
 panel_label <- paste0(panel_label, ", ", matrix_meta)   # used in plot titles
 
-# Tuning metric for the penalised (glmnet) models
+# Tuning metric for all caret models (glmnet, RF, SVM, XGBoost)
 tune_metric <- switch(tolower(trimws(opt$metric)),
   "roc" = "ROC",
   "logloss" = "logLoss",
@@ -283,7 +286,7 @@ parse_panel_paths <- function(input_arg, panel_choice) {
   list(npq = npq, metadata = metadata)
 }
 
-default_output_dir <- function(input_arg, panel_choice, matrix_meta, tune_metric = "ROC",
+default_output_dir <- function(input_arg, panel_choice, matrix_meta, tune_metric = "logLoss",
                                force_nefl = FALSE) {
   # CSF keeps the original folder name; Serum/Plasma get a suffix; logLoss tuning adds "_logLoss"
   leaf_name <- if (matrix_meta == "CSF") {
@@ -327,8 +330,8 @@ message("      Splits: ", BS_number, " stratified random splits (train ", train_
         "% / validation ", (1 - train_frac) * 100, "% per class)")
 message("      Feature selection: one LASSO per train split (lambda.", lambda_value, ")")
 message("      Final feature cutoff (fraction of splits): ", feature_freq_cutoff)
-message("      Tuning metric (LASSO/elastic net/ridge): ", tune_metric,
-        if (tune_metric == "logLoss") " (minimised)" else " (maximised)", "; RF/SVM/XGBoost: ROC")
+message("      Tuning metric (all models): ", tune_metric,
+        if (tune_metric == "logLoss") " (minimised)" else " (maximised)")
 message("      Force NEFL into ML models: ", force_nefl)
 message("      SHAP nsim: ", shap_nsim, ", top features in plot: ", shap_top_n)
 
@@ -508,13 +511,13 @@ fit_caret_model <- function(model_key, train_df, train_control) {
             trControl = train_control, tuneGrid = ridge_grid)
     },
     rf = train(class ~ ., data = train_df, method = "rf",
-               metric = "ROC", trControl = train_control, tuneLength = 3, ntree = 500),
+               metric = tune_metric, maximize = (tune_metric == "ROC"), trControl = train_control, tuneLength = 3, ntree = 500),
     svm_radial = train(class ~ ., data = train_df, method = "svmRadial",
-                       metric = "ROC", trControl = train_control, tuneLength = 3),
+                       metric = tune_metric, maximize = (tune_metric == "ROC"), trControl = train_control, tuneLength = 3),
     svm_linear = train(class ~ ., data = train_df, method = "svmLinear",
-                       metric = "ROC", trControl = train_control, tuneLength = 3),
+                       metric = tune_metric, maximize = (tune_metric == "ROC"), trControl = train_control, tuneLength = 3),
     xgb = train(class ~ ., data = train_df, method = "xgbTree",
-                metric = "ROC", trControl = train_control, tuneLength = 3, verbosity = 0),
+                metric = tune_metric, maximize = (tune_metric == "ROC"), trControl = train_control, tuneLength = 3, verbosity = 0),
     stop("Unknown model: ", model_key)
   )
 }

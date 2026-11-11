@@ -615,35 +615,43 @@ Rscript Script/10_NULISA_Clustering.R \
   --reverse TRUE
 
 
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns -b 100 -f 0.4 -l min --train_frac 0.7 --vis FALSE 
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns -b 100 -f 0.4 -l min --train_frac 0.7 --vis TRUE 
+# Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns -b 100 -f 0.4 -l min --train_frac 0.7 --vis FALSE 
+# Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns -b 100 -f 0.4 -l min --train_frac 0.7 --vis TRUE 
 
-
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF -b 100 -f 0.4 -l min --vis FALSE
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF --vis TRUE
-Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix CSF
-
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA -b 100 -f 0.4 -l min --vis FALSE
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA --vis TRUE
-Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix PLASMA
-
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM -b 100 -f 0.4 -l min --vis FALSE
-Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM --vis TRUE
-Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix SERUM
 
 # ------------------------------------------------------------
-# 08 with the penalised models (LASSO / elastic net / ridge) tuned by log loss instead of ROC AUC
-# (ROC ties across lambda for ridge -> lambda pushed to the grid maximum). RF/SVM/XGBoost still use ROC.
-# Output goes to 08_Clustering_Feature_Selection[_<Matrix>]_logLoss, so the ROC results are kept.
+# 08 + 09 (default): all 7 ML models (LASSO, elastic net, ridge, RF, SVM-radial, SVM-linear, XGBoost)
+# tuned by cross-validated log loss (--metric logLoss).
+# Output: 08_Clustering_Feature_Selection[_<Matrix>]_logLoss and 09_PCA_ML_Genes[_<Matrix>]_logLoss
 # ------------------------------------------------------------
 Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF -b 100 -f 0.4 -l min --metric logLoss --vis FALSE
 Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF --metric logLoss --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix CSF --metric logLoss -f CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss/selected_features.txt -o CNS_immune/Results/CNS_panel/Without_tears/09_PCA_ML_Genes_logLoss --require_k2 TRUE --pr_breaks "0,0.5,1,2,4,Inf"
 
 Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA -b 100 -f 0.4 -l min --metric logLoss --vis FALSE
 Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA --metric logLoss --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix PLASMA --metric logLoss -f CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Plasma_logLoss/selected_features.txt -o CNS_immune/Results/CNS_panel/Without_tears/09_PCA_ML_Genes_Plasma_logLoss --require_k2 TRUE --pr_breaks "0,0.5,1,2,4,Inf"
 
 Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM -b 100 -f 0.4 -l min --metric logLoss --vis FALSE
 Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM --metric logLoss --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix SERUM --metric logLoss -f CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Serum_logLoss/selected_features.txt -o CNS_immune/Results/CNS_panel/Without_tears/09_PCA_ML_Genes_Serum_logLoss --require_k2 TRUE --pr_breaks "0,0.5,1,2,4,Inf"
+
+# ------------------------------------------------------------
+# Optional: all models tuned by CV ROC AUC (--metric ROC), for comparison with the logLoss results.
+# Output: 08_Clustering_Feature_Selection[_<Matrix>] and 09_PCA_ML_Genes[_<Matrix>] (no suffix)
+# Note: with ROC, ridge (and SVM-radial) often tie across the tuning grid -> strongest penalty chosen.
+# ------------------------------------------------------------
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF -b 100 -f 0.4 -l min --metric ROC --vis FALSE
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix CSF --metric ROC --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix CSF --metric ROC -f CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection/selected_features.txt -o CNS_immune/Results/CNS_panel/Without_tears/09_PCA_ML_Genes --require_k2 TRUE --pr_breaks "0,0.5,1,2,4,Inf"
+
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA -b 100 -f 0.4 -l min --metric ROC --vis FALSE
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix PLASMA --metric ROC --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix PLASMA --metric ROC -f CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Plasma/selected_features.txt -o CNS_immune/Results/CNS_panel/Without_tears/09_PCA_ML_Genes_Plasma --require_k2 TRUE --pr_breaks "0,0.5,1,2,4,Inf"
+
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM -b 100 -f 0.4 -l min --metric ROC --vis FALSE
+Rscript Script/08_Clustering_Feature_Selection.R -i CNS_immune/Results --panel cns --matrix SERUM --metric ROC --vis TRUE
+Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix SERUM --metric ROC -f CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Serum/selected_features.txt -o CNS_immune/Results/CNS_panel/Without_tears/09_PCA_ML_Genes_Serum --require_k2 TRUE --pr_breaks "0,0.5,1,2,4,Inf"
 
 # Optional: apply the logLoss-tuned CSF models to ROCK-ALS (separate output folder; ridge no longer needs excluding)
 Rscript Script/11_with_ROCK_ALS.R --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss --ensemble_exclude none
@@ -659,3 +667,7 @@ Rscript Script/13_BetweenFluid_ML_Proteins.R -i CNS_immune/Results --panel cns
 # 11 with the within-group tertile confidence filter for the clinical comparisons
 # (alpha keeps the lowest 2/3 of ensemble P(beta), beta the highest 2/3; outputs get suffix "_tertile")
 Rscript Script/11_with_ROCK_ALS.R --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss --ensemble_exclude none --Tertile TRUE
+
+# 14: confidence filter = samples on which all 7 ML models agree (no tertile filter); reads the 11 logLoss
+# predictions (read-only) and writes to its own folder 14_ROCK_ALS_allAgree_logLoss
+Rscript Script/14_ROCK_ALS_allAgree.R -i CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/14_ROCK_ALS_allAgree_logLoss --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss --mode standardize --pr_cutoff 0.58 --cont_vars "age,ALSFRS-R Score,Calculated Vital capacity (%),NfL,NEFL_NPQ,GFAP,progression_rate,months_onset_to_BL"

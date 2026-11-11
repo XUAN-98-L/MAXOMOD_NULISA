@@ -6,12 +6,14 @@
 #   --panel both   -> <input>/Combined_CNS_Immune_panels/Without_tears/...
 #   --panel cns    -> <input>/CNS_panel/Without_tears/...
 #   --panel immune -> <input>/Immune_panel/Without_tears/...
-#   reading  .../08_Clustering_Feature_Selection[_<Matrix>]/selected_features.txt
-#   writing  .../09_PCA_ML_Genes[_<Matrix>]/
+#   reading  .../08_Clustering_Feature_Selection[_<Matrix>][_logLoss]/selected_features.txt
+#   writing  .../09_PCA_ML_Genes[_<Matrix>][_logLoss]/
 # --matrix CSF | Serum | Plasma (same as 08; CSF folders have no suffix).
+# --metric logLoss (default) | ROC: same as used for 08; logLoss folders get "_logLoss".
 #
 # Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns
 # Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --matrix Serum
+# Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel cns --metric ROC
 # Rscript Script/09_PCA_ML_Genes.R -i CNS_immune/Results --panel both
 # (-f / -o override the automatic paths)
 
@@ -68,6 +70,13 @@ option_list <- list(
     help = "Sample matrix used in 08: 'CSF', 'Serum' or 'Plasma' (case-insensitive) [default: %default]"
   ),
   make_option(
+    c("--metric"), type = "character", default = "logLoss",
+    help = paste(
+      "Tuning metric used in 08: 'logLoss' (default; reads/writes folders with suffix '_logLoss')",
+      "or 'ROC' (folders without suffix) [default: %default]"
+    )
+  ),
+  make_option(
     c("-f", "--features"), type = "character", default = NULL,
     help = "selected_features.txt from 08 [default: derived from -i and --panel]"
   ),
@@ -94,6 +103,14 @@ if (!matrix_key %in% c("CSF", "SERUM", "PLASMA")) {
 }
 matrix_meta <- switch(matrix_key, CSF = "CSF", SERUM = "Serum", PLASMA = "Plasma")
 matrix_suffix <- if (matrix_meta == "CSF") "" else paste0("_", matrix_meta)   # folder suffix, as in 08
+
+# Tuning metric of the 08 run: logLoss folders carry "_logLoss" (after the matrix suffix), as in 08
+tune_metric <- switch(tolower(trimws(opt$metric)),
+  "roc" = "ROC",
+  "logloss" = "logLoss",
+  stop("--metric must be 'logLoss' or 'ROC'.")
+)
+metric_suffix <- if (tune_metric == "logLoss") "_logLoss" else ""
 
 # Same logic as 08_Clustering_Feature_Selection.R
 parse_panel_paths <- function(input_arg, panel_choice) {
@@ -154,24 +171,24 @@ features_path <- opt$features
 if (is.null(features_path) || !nzchar(features_path)) {
   if (is_file_input) stop("With comma-separated --input, please give -f (selected_features.txt from 08).")
   features_path <- file.path(panel_result_dir(opt$input, panel_choice),
-                             paste0("08_Clustering_Feature_Selection", matrix_suffix), "selected_features.txt")
+                             paste0("08_Clustering_Feature_Selection", matrix_suffix, metric_suffix), "selected_features.txt")
 }
 if (!file.exists(features_path)) {
   stop("Selected-feature file not found: ", features_path,
-       "\nRun 08_Clustering_Feature_Selection.R with the same -i/--panel/--matrix first, or give -f.")
+       "\nRun 08_Clustering_Feature_Selection.R with the same -i/--panel/--matrix/--metric first, or give -f.")
 }
 
 output_dir <- opt$output
 if (is.null(output_dir) || !nzchar(output_dir)) {
   output_dir <- if (is_file_input) {
-    paste0("09_PCA_ML_Genes", matrix_suffix, "_", panel_choice)
+    paste0("09_PCA_ML_Genes", matrix_suffix, metric_suffix, "_", panel_choice)
   } else {
-    file.path(panel_result_dir(opt$input, panel_choice), paste0("09_PCA_ML_Genes", matrix_suffix))
+    file.path(panel_result_dir(opt$input, panel_choice), paste0("09_PCA_ML_Genes", matrix_suffix, metric_suffix))
   }
 }
 if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
 
-message("Panel(s): ", panel_label, "; matrix: ", matrix_meta)
+message("Panel(s): ", panel_label, "; matrix: ", matrix_meta, "; 08 tuning metric: ", tune_metric)
 for (p in names(panel_paths$npq)) message("Input (", p, " NPQ): ", panel_paths$npq[[p]])
 message("Metadata: ", panel_paths$metadata)
 message("Selected features: ", features_path)
