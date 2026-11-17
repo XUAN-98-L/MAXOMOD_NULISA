@@ -671,3 +671,7 @@ Rscript Script/11_with_ROCK_ALS.R --model_dir CNS_immune/Results/CNS_panel/Witho
 # 14: confidence filter = samples on which all 7 ML models agree (no tertile filter); reads the 11 logLoss
 # predictions (read-only) and writes to its own folder 14_ROCK_ALS_allAgree_logLoss
 Rscript Script/14_ROCK_ALS_allAgree.R -i CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/14_ROCK_ALS_allAgree_logLoss --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss --mode standardize --pr_cutoff 0.58 --cont_vars "age,ALSFRS-R Score,Calculated Vital capacity (%),NfL,NEFL_NPQ,GFAP,progression_rate,months_onset_to_BL"
+
+# 15: raw CSF NPQ of the 08 logLoss ML-selected proteins, alpha vs beta, one figure per protein:
+# MAXOMOD (true k2, left) | ROCK-ALS (11 logLoss predicted k2, right); Wilcoxon + BH
+Rscript Script/15_CSF_protein_Predicted_k2.R --features CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss/selected_features.txt --npq CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --rock_pred CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss/ROCK_ALS_CSF_predicted_k2_standardize.csv --rock_expr /Users/xliu2942/Documents/Projects/ROCK_ALS/Results/csf/00_Initialization/Expression.csv -o CNS_immune/Results/CNS_panel/Without_tears/15_CSF_protein_Predicted_k2
