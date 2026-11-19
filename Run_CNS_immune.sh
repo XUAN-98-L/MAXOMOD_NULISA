@@ -674,4 +674,43 @@ Rscript Script/14_ROCK_ALS_allAgree.R -i CNS_immune/Results/CNS_panel/Without_te
 
 # 15: raw CSF NPQ of the 08 logLoss ML-selected proteins, alpha vs beta, one figure per protein:
 # MAXOMOD (true k2, left) | ROCK-ALS (11 logLoss predicted k2, right); Wilcoxon + BH
-Rscript Script/15_CSF_protein_Predicted_k2.R --features CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss/selected_features.txt --npq CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --rock_pred CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss/ROCK_ALS_CSF_predicted_k2_standardize.csv --rock_expr /Users/xliu2942/Documents/Projects/ROCK_ALS/Results/csf/00_Initialization/Expression.csv -o CNS_immune/Results/CNS_panel/Without_tears/15_CSF_protein_Predicted_k2
+Rscript Script/15_CSF_protein_Predicted_k2.R --features CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_logLoss/selected_features.txt --npq CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/npq_counts.xlsx --metadata CNS_immune/Results/CNS_panel/Without_tears/00_Initialization/all_participants_IDs.xlsx --rock_pred CNS_immune/Results/CNS_panel/Without_tears/11_with_ROCK_ALS_logLoss/ROCK_ALS_CSF_predicted_k2_standardize.csv --rock_expr /Users/xliu2942/Documents/Projects/ROCK_ALS/Results_Outlier_removed/csf/00_Initialization/Expression.csv -o CNS_immune/Results/CNS_panel/Without_tears/15_CSF_protein_Predicted_k2
+
+# 11b: blood models (08 Serum/Plasma logLoss) applied to ROCK-ALS serum/plasma of ONE time point.
+# First list the time points available, then run one command per fluid x time point
+# (--time accepts V1 / 1 / "Visit 1"; numbers are matched to the visit number).
+Rscript Script/11b_with_ROCK_ALS_serum.R --fluid Serum --list_times TRUE
+Rscript Script/11b_with_ROCK_ALS_serum.R --fluid Plasma --list_times TRUE
+
+Rscript Script/11b_with_ROCK_ALS_serum.R --fluid Serum --time V1 --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Serum_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Serum_V1_logLoss --harmonize standardize --threshold 0.5 --pr_cutoff 0.58 --ensemble_exclude none --Tertile FALSE
+Rscript Script/11b_with_ROCK_ALS_serum.R --fluid Serum --time V20 --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Serum_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Serum_V20_logLoss --harmonize standardize --threshold 0.5 --pr_cutoff 0.58 --ensemble_exclude none --Tertile FALSE
+Rscript Script/11b_with_ROCK_ALS_serum.R --fluid Plasma --time V1 --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Plasma_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Plasma_V1_logLoss --harmonize standardize --threshold 0.5 --pr_cutoff 0.58 --ensemble_exclude none --Tertile FALSE
+Rscript Script/11b_with_ROCK_ALS_serum.R --fluid Plasma --time V20 --model_dir CNS_immune/Results/CNS_panel/Without_tears/08_Clustering_Feature_Selection_Plasma_logLoss -o CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Plasma_V20_logLoss --harmonize standardize --threshold 0.5 --pr_cutoff 0.58 --ensemble_exclude none --Tertile FALSE
+
+# ============================================================
+# 16: held-out AUC vs number of LASSO-selected proteins per split (from 08 bootstrap_AUC_per_iteration.csv)
+# Output: 16_AUC_Comparison_logLoss (or 16_AUC_Comparison for --metric ROC)
+# ============================================================
+Rscript Script/16_AUC_Comparison.R -b CNS_immune/Results/CNS_panel/Without_tears --fluids CSF,Plasma,Serum --metric logLoss --bins "2,3,5,8,12,Inf" --min_splits 3 -o CNS_immune/Results/CNS_panel/Without_tears/16_AUC_Comparison_logLoss
+#Rscript Script/16_AUC_Comparison.R -b CNS_immune/Results/CNS_panel/Without_tears --fluids CSF,Plasma,Serum --metric ROC --bins "2,3,5,8,12,Inf" --min_splits 3 -o CNS_immune/Results/CNS_panel/Without_tears/16_AUC_Comparison
+# 16 part 2: top-n proteins added in order of selection frequency (like MAXOMOD Fig. d). Slow; results cached in the 16 folder.
+#   --rank global : order from 08 frequency (all samples) -> AUC optimistic
+#   --rank nested : order re-estimated inside each split (train only) -> no leakage
+# Rscript Script/16_AUC_Comparison.R -b CNS_immune/Results/CNS_panel/Without_tears --fluids CSF,Plasma,Serum --metric logLoss --topn TRUE --rank global --topn_min 2 --topn_max 15 --cores 6 -o CNS_immune/Results/CNS_panel/Without_tears/16_AUC_Comparison_logLoss
+Rscript Script/16_AUC_Comparison.R -b CNS_immune/Results/CNS_panel/Without_tears --fluids CSF,Plasma,Serum --metric logLoss --topn TRUE --rank nested --inner_B 50 --inner_frac 0.8 --lambda min --topn_min 2 --topn_max 15 --cores 6 -o CNS_immune/Results/CNS_panel/Without_tears/16_AUC_Comparison_logLoss
+
+Rscript Script/17_Sankey.R \
+  --v1 CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Serum_V1_logLoss \
+  --v20 CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Serum_V20_logLoss \
+  --labels V1,V20 \
+  -o CNS_immune/Results/CNS_panel/Without_tears/17_Sankey_Serum_logLoss \
+  --mode standardize \
+  --exclude_models none
+
+Rscript Script/17_Sankey.R \
+  --v1 CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Plasma_V1_logLoss \
+  --v20 CNS_immune/Results/CNS_panel/Without_tears/11b_with_ROCK_ALS_Plasma_V20_logLoss \
+  --labels V1,V20 \
+  -o CNS_immune/Results/CNS_panel/Without_tears/17_Sankey_Plasma_logLoss \
+  --mode standardize \
+  --exclude_models none
